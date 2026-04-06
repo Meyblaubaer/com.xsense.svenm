@@ -1,0 +1,10 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Activated",
+    "de": "Aktiviert"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

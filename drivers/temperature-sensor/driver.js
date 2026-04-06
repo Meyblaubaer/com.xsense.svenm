@@ -43,12 +43,14 @@ class TemperatureSensorDriver extends Homey.Driver {
             name: name,
             data: {
               id: device.id,
+              deviceSn: device.deviceSn || device.deviceSN || device.sn,
               stationId: device.stationId,
               houseId: device.houseId
             },
             store: {
               email: username,
               password: password,
+              deviceSn: device.deviceSn || device.deviceSN || device.sn,
               stationId: device.stationId,
               houseId: device.houseId,
               deviceType: deviceType

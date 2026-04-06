@@ -1,0 +1,10 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "End of Life",
+    "de": "Lebensende"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

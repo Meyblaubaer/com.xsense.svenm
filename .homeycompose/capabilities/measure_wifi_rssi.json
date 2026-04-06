@@ -1,0 +1,13 @@
+{
+  "type": "number",
+  "title": {
+    "en": "WiFi RSSI",
+    "de": "WiFi RSSI"
+  },
+  "unit": "dBm",
+  "decimals": 0,
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true
+}

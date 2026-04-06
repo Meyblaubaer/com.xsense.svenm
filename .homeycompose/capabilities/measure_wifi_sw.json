@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "title": {
+    "en": "WiFi Firmware",
+    "de": "WiFi-Firmware"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

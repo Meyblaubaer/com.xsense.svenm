@@ -144,7 +144,7 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     }
 
     try {
-      await this.api.muteAlarm(this.deviceData.stationId, this.deviceData.deviceSn);
+      await this.api.muteAlarm(this.deviceData.id, this.deviceData.deviceSn);
       this.log('Alarm muted successfully');
       return true;
     } catch (error) {

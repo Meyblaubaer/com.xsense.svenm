@@ -1,0 +1,14 @@
+{
+  "type": "number",
+  "title": {
+    "en": "RF Level",
+    "de": "RF-Level"
+  },
+  "min": 0,
+  "max": 4,
+  "decimals": 0,
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": true
+}

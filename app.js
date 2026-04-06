@@ -19,6 +19,9 @@ class XSenseApp extends Homey.App {
     // Register flow card actions
     this._registerFlowCards();
 
+    // One-off repair for missing deviceSn on temperature sensors
+    this._scheduleDeviceSnRepair();
+
     // Coordinated polling: Only when MQTT is unhealthy
     // Increased to 60s to reduce API load
     this.pollInterval = setInterval(() => {
@@ -47,21 +50,134 @@ class XSenseApp extends Homey.App {
     // Global Fire Drill Action
     this.homey.flow.getActionCard('trigger_fire_drill')
       .registerRunListener(async (args, state) => {
-        this.log('🚨 Starting Global Fire Drill! Triggering all smoke detectors...');
+        this.log('🚨 Starting Global Fire Drill! Triggering station fire drill...');
         const driver = this.homey.drivers.getDriver('smoke-detector');
         const devices = driver.getDevices();
 
-        // Trigger test on all devices to verify system integrity
-        // In real interconnect, one might suffice, but triggering all ensures coverage.
-        const promises = devices.map(device => {
-          return device.testAlarm()
-            .then(() => this.log(`Fire drill triggered on ${device.getName()}`))
-            .catch(err => this.error(`Failed to trigger fire drill on ${device.getName()}:`, err));
+        const byStation = new Map();
+        for (const device of devices) {
+          const data = device.getData();
+          if (!data || !data.stationId) continue;
+          if (!byStation.has(data.stationId)) {
+            byStation.set(data.stationId, device);
+          }
+        }
+
+        const promises = Array.from(byStation.values()).map((device) => {
+          return device.api.triggerFireDrill(device.getData().id)
+            .then(() => this.log(`Fire drill triggered on station for ${device.getName()}`))
+            .catch(err => this.error(`Failed to trigger fire drill for ${device.getName()}:`, err));
         });
 
         await Promise.all(promises);
         return true;
       });
+  }
+
+  _scheduleDeviceSnRepair() {
+    // Delay to allow API init and device objects to settle
+    setTimeout(() => {
+      this._repairDeviceSnOnce().catch((err) => {
+        this.error('[Repair] deviceSn repair failed:', err);
+      });
+    }, 5000);
+  }
+
+  async _repairDeviceSnOnce() {
+    const driver = this.homey.drivers.getDriver('temperature-sensor');
+    if (!driver) {
+      this.homey.settings.set('deviceSnRepairDone', true);
+      return;
+    }
+
+    const devices = driver.getDevices();
+    if (!devices || devices.length === 0) {
+      this.homey.settings.set('deviceSnRepairDone', true);
+      return;
+    }
+
+    const missing = devices.filter((device) => {
+      const data = device.getData();
+      const store = device.getStore();
+      return !(data && data.deviceSn) && !(store && store.deviceSn);
+    });
+
+    if (missing.length === 0) {
+      this.homey.settings.set('deviceSnRepairDone', true);
+      return;
+    }
+
+    const alreadyDone = this.homey.settings.get('deviceSnRepairDone');
+    if (alreadyDone) {
+      this.log('[Repair] deviceSn repair previously completed, but missing devices detected. Re-running repair.');
+    }
+
+    this.log(`[Repair] Running one-time deviceSn repair for ${missing.length} temp sensor(s)`);
+
+    // Group devices by credentials to avoid redundant API calls
+    const byCred = new Map();
+    for (const device of missing) {
+      const store = device.getStore();
+      const email = store?.email;
+      const password = store?.password;
+      if (!email || !password) continue;
+      const key = `${email}:${password}`;
+      if (!byCred.has(key)) {
+        byCred.set(key, { email, password, devices: [] });
+      }
+      byCred.get(key).devices.push(device);
+    }
+
+    for (const { email, password, devices: group } of byCred.values()) {
+      let api;
+      let all;
+      try {
+        api = await this.getAPIClient(email, password);
+        all = await api.getAllDevices();
+      } catch (err) {
+        this.error('[Repair] Failed to fetch devices for repair:', err);
+        continue;
+      }
+
+      const list = all?.devices || [];
+      const byId = new Map();
+      const bySn = new Map();
+      for (const d of list) {
+        if (d.id) byId.set(d.id, d);
+        if (d.deviceSn) bySn.set(d.deviceSn, d);
+      }
+
+      for (const device of group) {
+        const data = device.getData();
+        const settings = device.getSettings();
+        const store = device.getStore();
+
+        const candidates = [
+          data?.id,
+          data?.deviceSn,
+          store?.deviceSn,
+          settings?.device_id,
+          settings?.deviceId,
+        ].filter(Boolean);
+
+        let match = null;
+        for (const candidate of candidates) {
+          match = byId.get(candidate) || bySn.get(candidate);
+          if (match) break;
+        }
+
+        if (match && match.deviceSn) {
+          await device.setStoreValue('deviceSn', match.deviceSn).catch(this.error);
+          if (device.deviceData) {
+            device.deviceData.deviceSn = match.deviceSn;
+          }
+          this.log(`[Repair] Set deviceSn for ${device.getName()}: ${match.deviceSn}`);
+        }
+      }
+    }
+
+    this.homey.settings.set('deviceSnRepairDone', true);
+    this.log('[Repair] deviceSn repair completed');
   }
 
   /**

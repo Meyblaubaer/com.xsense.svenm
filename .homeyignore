@@ -13,7 +13,12 @@ node_modules/
 # Logs and Debug
 *.log
 *.pcap
+*.pcapng
 *.txt
+*.pid
+*.tmp
+*.bak
+*.old
 signer-debug.json
 xsense_sslkeylog*.log
 xsense_mqtt*.pcap
@@ -22,6 +27,7 @@ xsense_mqtt*.pcap
 # Build Artifacts
 .homeybuild/
 .homeybuild*/
+.homeybuild_old/
 .homeycompose/
 
 # Unused Code
@@ -32,6 +38,7 @@ hassio_py/
 !README.de.txt
 
 # Documentation & Backups
+*.md
 Github.md
 README.md.bak
 README.md.bak2

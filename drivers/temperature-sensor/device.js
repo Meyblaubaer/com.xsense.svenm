@@ -7,10 +7,23 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('TemperatureSensorDevice has been initialized');
+    this.log('Temp device identifiers:', {
+      id: this.deviceData?.id,
+      deviceSn: this.deviceData?.deviceSn,
+      stationId: this.deviceData?.stationId,
+      houseId: this.deviceData?.houseId,
+      deviceType: this.deviceData?.deviceType,
+    });
 
     // Force add Capability if missing (for existing devices)
     if (!this.hasCapability('measure_signal_strength')) {
       await this.addCapability('measure_signal_strength').catch(this.error);
+    }
+    if (!this.hasCapability('measure_temperature')) {
+      await this.addCapability('measure_temperature').catch(this.error);
+    }
+    if (!this.hasCapability('measure_humidity')) {
+      await this.addCapability('measure_humidity').catch(this.error);
     }
 
     // Previous values for change detection
@@ -54,12 +67,23 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
     await super._handleDeviceUpdate(deviceData);
 
     try {
-      // Update temperature
+      const status = deviceData.status || {};
+
+      // Update temperature (support shadow status fields)
       if (this.hasCapability('measure_temperature')) {
-        const temp = deviceData.temperature || deviceData.temp;
+        const temp =
+          deviceData.temperature ??
+          deviceData.temp ??
+          status.b ??
+          status.temperature ??
+          status.temp;
 
         if (temp !== undefined && temp !== null) {
-          await this.setCapabilityValue('measure_temperature', parseFloat(temp)).catch(this.error);
+          const parsed = parseFloat(temp);
+          if (!Number.isNaN(parsed)) {
+            await this.setCapabilityValue('measure_temperature', parsed).catch(this.error);
+            this.log(`Temperature updated: ${parsed}°C`);
+          }
           
           // Trigger flow if temperature changed significantly (more than 1°C)
           if (this.previousTemp !== null && Math.abs(temp - this.previousTemp) > 1) {
@@ -70,12 +94,21 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
         }
       }
 
-      // Update humidity
+      // Update humidity (support shadow status fields)
       if (this.hasCapability('measure_humidity')) {
-        const humidity = deviceData.humidity || deviceData.humi;
+        const humidity =
+          deviceData.humidity ??
+          deviceData.humi ??
+          status.c ??
+          status.humidity ??
+          status.humi;
 
         if (humidity !== undefined && humidity !== null) {
-          await this.setCapabilityValue('measure_humidity', parseFloat(humidity)).catch(this.error);
+          const parsed = parseFloat(humidity);
+          if (!Number.isNaN(parsed)) {
+            await this.setCapabilityValue('measure_humidity', parsed).catch(this.error);
+            this.log(`Humidity updated: ${parsed}%`);
+          }
           
           // Track previous humidity for change detection
           if (this.previousHumidity !== null && Math.abs(humidity - this.previousHumidity) > 5) {

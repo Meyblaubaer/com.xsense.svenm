@@ -1225,6 +1225,71 @@
     }
   ],
   "capabilities": {
+    "alarm_activate": {
+      "type": "boolean",
+      "title": {
+        "en": "Activated",
+        "de": "Aktiviert"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "alarm_life_end": {
+      "type": "boolean",
+      "title": {
+        "en": "End of Life",
+        "de": "Lebensende"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "alarm_mqtt_connected": {
+      "type": "boolean",
+      "title": {
+        "en": "MQTT Connected",
+        "de": "MQTT verbunden"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "alarm_muted": {
+      "type": "boolean",
+      "title": {
+        "en": "Muted",
+        "de": "Stumm"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "measure_alarm_volume": {
+      "type": "number",
+      "title": {
+        "en": "Alarm Volume",
+        "de": "Alarm-Lautstaerke"
+      },
+      "unit": "%",
+      "min": 0,
+      "max": 100,
+      "decimals": 0,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true
+    },
+    "measure_ip_address": {
+      "type": "string",
+      "title": {
+        "en": "IP Address",
+        "de": "IP-Adresse"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
     "measure_last_seen": {
       "type": "string",
       "title": {
@@ -1234,6 +1299,20 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor"
+    },
+    "measure_rf_level": {
+      "type": "number",
+      "title": {
+        "en": "RF Level",
+        "de": "RF-Level"
+      },
+      "min": 0,
+      "max": 4,
+      "decimals": 0,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true
     },
     "measure_smoke_status": {
       "type": "string",
@@ -1246,6 +1325,64 @@
       "uiComponent": "sensor",
       "icon": "assets/images/measure_smoke_status.svg",
       "insights": true
+    },
+    "measure_sw_version": {
+      "type": "string",
+      "title": {
+        "en": "Firmware Version",
+        "de": "Firmware-Version"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "measure_voice_volume": {
+      "type": "number",
+      "title": {
+        "en": "Voice Volume",
+        "de": "Sprachlautstaerke"
+      },
+      "unit": "%",
+      "min": 0,
+      "max": 100,
+      "decimals": 0,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true
+    },
+    "measure_wifi_rssi": {
+      "type": "number",
+      "title": {
+        "en": "WiFi RSSI",
+        "de": "WiFi RSSI"
+      },
+      "unit": "dBm",
+      "decimals": 0,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "insights": true
+    },
+    "measure_wifi_ssid": {
+      "type": "string",
+      "title": {
+        "en": "WiFi SSID",
+        "de": "WiFi SSID"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "measure_wifi_sw": {
+      "type": "string",
+      "title": {
+        "en": "WiFi Firmware",
+        "de": "WiFi-Firmware"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
     }
   }
 }

@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "title": {
+    "en": "IP Address",
+    "de": "IP-Adresse"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

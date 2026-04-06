@@ -1,0 +1,10 @@
+{
+  "type": "string",
+  "title": {
+    "en": "WiFi SSID",
+    "de": "WiFi SSID"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}
