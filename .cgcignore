@@ -1,0 +1,18 @@
+# Ignore node_modules
+node_modules/
+.homeybuild/
+.homeybuild_old/
+dist/
+build/
+
+# Ignore logs and pcap
+*.log
+*.pcap
+*.txt
+
+# Ignore backup files
+*.backup
+*.bak
+*.bak2
+XSenseAPI (1).js
+XSenseAPI 2.js.backup

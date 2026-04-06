@@ -102,6 +102,12 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
         await this.setCapabilityValue('alarm_co', coAlarm).catch(e => this.error('CO alarm update failed:', e));
       }
 
+      // CO value (measure_co)
+      if (this.hasCapability('measure_co')) {
+        const coVal = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
+        await this.setCapabilityValue('measure_co', coVal).catch(e => this.error('CO value update failed:', e));
+      }
+
       // Smoke status text
       if (this.hasCapability('measure_smoke_status')) {
         let statusText = 'OK';

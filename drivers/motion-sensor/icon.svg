@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="50" height="50">
+  <!-- Sensor body -->
+  <ellipse cx="25" cy="30" rx="12" ry="8" fill="#f5f5f5" stroke="#333" stroke-width="1.5"/>
+  
+  <!-- Sensor lens -->
+  <ellipse cx="25" cy="28" rx="8" ry="5" fill="#2196F3" stroke="#1565C0" stroke-width="1"/>
+  <ellipse cx="25" cy="27" rx="4" ry="2.5" fill="#64B5F6" opacity="0.6"/>
+  
+  <!-- Motion detection waves -->
+  <path d="M 10 20 Q 5 25 10 30" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 6 17 Q -1 25 6 33" fill="none" stroke="#4CAF50" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+  <path d="M 2 14 Q -7 25 2 36" fill="none" stroke="#4CAF50" stroke-width="0.9" stroke-linecap="round" opacity="0.4"/>
+  
+  <path d="M 40 20 Q 45 25 40 30" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M 44 17 Q 51 25 44 33" fill="none" stroke="#4CAF50" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+  <path d="M 48 14 Q 57 25 48 36" fill="none" stroke="#4CAF50" stroke-width="0.9" stroke-linecap="round" opacity="0.4"/>
+  
+  <!-- Person silhouette -->
+  <circle cx="25" cy="10" r="3" fill="#666"/>
+  <path d="M 25 13 L 25 22 M 21 16 L 29 16 M 22 25 L 25 20 L 28 25" fill="none" stroke="#666" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

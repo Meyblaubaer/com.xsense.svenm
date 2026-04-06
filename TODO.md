@@ -1,97 +1,93 @@
-# TODO - XSense Homey App
+# X-Sense Homey App - TODO List
 
-## Kritische Punkte
+## Current Status: v1.1.5 (Production Ready)
 
-### AWS Cognito Authentication
-Die XSense API nutzt **AWS Cognito SRP (Secure Remote Password) Authentication**, nicht einfache REST API Calls.
+✅ **Fully Functional App with AWS Cognito SRP Authentication**
+- ✅ AWS Cognito Authentication implemented
+- ✅ MQTT over AWS IoT WebSocket
+- ✅ Thing Shadow API for device state
+- ✅ Session management with re-authentication
+- ✅ 6 Device Drivers (Smoke, CO, Motion, Temperature, Water, Heat)
+- ✅ Flow Cards and capabilities
+- ✅ Exponential backoff for server errors
+- ✅ Credential encryption support
 
-**Aktueller Status:**
-- ❌ Simplified API implementation (funktioniert nicht mit echtem API)
-- ✅ Korrekte API-URL: `https://api.x-sense-iot.com`
-- ✅ App-Struktur und alle Driver implementiert
+---
 
-**Benötigt für Production:**
+## Known Issues (7-Day Collection Period)
 
-Die `lib/XSenseAPI.js` muss komplett neu implementiert werden mit:
+**Collection Period:** 2026-02-04 to 2026-02-11
+**Batch Fix Version:** v1.1.10
 
-1. **AWS Cognito SRP Authentication**
-   - Node.js Paket: `amazon-cognito-identity-js` oder `aws-sdk`
-   - USER_SRP_AUTH Flow implementieren
-   - Pool ID, Client ID und Client Secret von python-xsense übernehmen
+### 1. MQTT "Quota exceeded" during app restart ✅ FIXED (v1.1.10)
+**Status:** Fixed via Mutex & Batching
+**Fixed:** 2026-02-16
+**Changes:**
+1. Added `SimpleMutex` to `XSenseAPI.js` to serialize connection attempts.
+2. Implemented MQTT batch subscription in `_subscribeTopic`.
+3. Optimized topic collection in `_subscribeStationTopics` to eliminate redundant calls.
+4. Ensured atomic `subscriptions` Set updates before network calls.
 
-2. **API-Endpunkte**
-   - Base URL: `https://api.x-sense-iot.com`
-   - Thing Shadows API für Geräte-Status
-   - MQTT über AWS IoT
+---
 
-3. **Referenz-Implementation:**
-   - Python: https://github.com/theosnel/python-xsense/blob/main/xsense/base.py
-   - Verwendet: pycognito, boto3, botocore
+## Recently Fixed (v1.1.5) ✅
 
-## Alternative Lösungsansätze
+### Session-expired loop with "bizCode cannot be empty"
+- **Fixed:** lib/XSenseAPI.js:443-446, 572
+- **Test Result:** 0 errors in 5-minute test, 22 successful API calls
+- **Users Affected:** Eling (eling@stichting-eling.nl)
+- **Changes:**
+  - Added pre-emptive token validation before API calls
+  - Extended session error detection to include "bizCode cannot be empty"
 
-### Option 1: Python Bridge
-- Erstelle einen kleinen Python Service, der python-xsense nutzt
-- Homey App kommuniziert mit dem Service via REST
-- Vorteil: Nutzt bewährte python-xsense Library
-- Nachteil: Zusätzlicher Service notwendig
+---
 
-### Option 2: AWS Cognito in Node.js
-- Nutze `amazon-cognito-identity-js` npm Paket
-- Implementiere SRP Auth Flow
-- Portiere python-xsense Logik nach JavaScript
-- Vorteil: Native Homey Integration
-- Nachteil: Komplexe Implementation
+## User Education (No Code Fix Needed) ℹ️
 
-### Option 3: Reverse-Engineering
-- Analysiere XSense Mobile App Traffic (via mitmproxy)
-- Finde alternative/einfachere API-Endpoints
-- Vorteil: Möglicherweise einfachere Auth
-- Nachteil: Nicht offiziell, könnte sich ändern
+### XS01-WX "Motion Sensor" Not Found
+- **User:** Heiko (heiko.glueck@gmx.de)
+- **Issue:** XS01-WX is a Wi-Fi Smoke Detector, not a motion sensor
+- **Resolution:** User guidance to add under "Smoke Detector" category
+- **Communication:** Drafted, pending send
 
-## Nächste Schritte
+### AWS Cognito RegEx Validation Error
+- **User:** Pyrgomantis@yahoo.de
+- **Issue:** External AWS Cognito validation error, outside app control
+- **Resolution:** Workaround steps (password reset, email change, new account)
+- **Communication:** Drafted, pending send
 
-1. **AWS Cognito Client ID & Pool ID beschaffen**
-   - Aus python-xsense extrahieren oder
-   - Via App Traffic Analyse finden
+---
 
-2. **Cognito Authentication implementieren**
-   ```javascript
-   const AmazonCognitoIdentity = require('amazon-cognito-identity-js');
-   // Implement USER_SRP_AUTH flow
-   ```
+## Future Considerations
 
-3. **API Calls anpassen**
-   - Thing Shadows statt REST endpoints
-   - AWS Signature V4 für authentifizierte Requests
+### Performance Optimization
+- Consider implementing MQTT subscription pooling for large installations (10+ devices)
+- Add device state caching to reduce API calls
+- Implement progressive backoff for repeated MQTT quota errors
 
-4. **MQTT über AWS IoT**
-   - Nutze AWS IoT MQTT Endpoints
-   - Device Shadow Updates subscriben
+### Feature Requests
+- Track user feature requests here during collection period
+- Review before v1.2.0 planning
 
-## Hilfreiche Links
+---
 
+## Development Resources
+
+### Helpful Links
 - Python XSense Library: https://github.com/theosnel/python-xsense
 - Home Assistant Integration: https://github.com/Jarnsen/ha-xsense-component_test
 - AWS Cognito JS SDK: https://www.npmjs.com/package/amazon-cognito-identity-js
-- AWS SDK for JavaScript: https://www.npmjs.com/package/aws-sdk
+- AWS IoT SDK: https://www.npmjs.com/package/aws-iot-device-sdk
 
-## Aktuelle Einschränkungen
+### Testing
+- Always run 5-minute test with `homey app run` after fixes
+- Analyze logs for errors, session loops, and MQTT stability
+- Monitor API call counts and response times
 
-⚠️ **Die App ist aktuell nicht funktionsfähig**, da die Authentication fehlt.
-
-Die komplette App-Struktur ist fertig:
-- ✅ 3 Driver (Rauchmelder, Temperatur, Wasser)
-- ✅ Flow Cards
-- ✅ Icons und Lokalisierung
-- ✅ Device Management
-- ❌ **Funktionierende API-Anbindung**
-
-## Für Entwickler
-
-Wenn du zur API-Implementation beitragen möchtest:
-
-1. Schau dir `xsense/base.py` aus python-xsense an
-2. Portiere die Cognito Auth nach JavaScript
-3. Teste mit echten XSense Geräten
-4. Pull Request erstellen
+### 2. Certification Issues (App Store Images) ✅ FIXED
+**Status:** Images resized and unique graphics created
+**Fixed:** 2026-02-16
+**Changes:**
+1. Resized all `large.png` and `small.png` to square ratio (500x500 and 75x75) to fix distortion.
+2. Created distinctive, branded graphics for all driver categories (CO, Heat, Water, Door, Motion, Mailbox).
+3. Ensured SVG icons are unique and placed in driver root folders.

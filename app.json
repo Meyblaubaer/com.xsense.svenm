@@ -67,14 +67,13 @@
     "url": "https://github.com/Meyblaubaer/com.xsense.svenm/issues"
   },
   "source": "https://github.com/Meyblaubaer/com.xsense.svenm",
-    "contributing": {
+  "contributing": {
     "donate": {
       "githubSponsors": {
-         // Will link to https://github.com/sponsors/my_github_username
-         "username": "Meyblaubaer"
-       }
+        "username": "Meyblaubaer"
+      }
     }
-  }
+  },
   "flow": {
     "triggers": [
       {

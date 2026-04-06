@@ -59,6 +59,8 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
         const temp = deviceData.temperature || deviceData.temp;
 
         if (temp !== undefined && temp !== null) {
+          await this.setCapabilityValue('measure_temperature', parseFloat(temp)).catch(this.error);
+          
           // Trigger flow if temperature changed significantly (more than 1°C)
           if (this.previousTemp !== null && Math.abs(temp - this.previousTemp) > 1) {
             // Flow trigger removed
@@ -73,6 +75,8 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
         const humidity = deviceData.humidity || deviceData.humi;
 
         if (humidity !== undefined && humidity !== null) {
+          await this.setCapabilityValue('measure_humidity', parseFloat(humidity)).catch(this.error);
+          
           // Track previous humidity for change detection
           if (this.previousHumidity !== null && Math.abs(humidity - this.previousHumidity) > 5) {
             // Significant change detected (>5%)

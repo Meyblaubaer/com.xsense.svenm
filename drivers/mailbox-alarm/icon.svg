@@ -1,0 +1,6 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <!-- Envelope Outline -->
+  <rect x="100" y="250" width="800" height="500" rx="50" ry="50" fill="none" stroke="black" stroke-width="50"/>
+  <!-- Envelope Flap -->
+  <path d="M100,250 L500,550 L900,250" fill="none" stroke="black" stroke-width="50" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

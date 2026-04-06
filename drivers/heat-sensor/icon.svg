@@ -1,0 +1,8 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <!-- Outer Circle -->
+  <circle cx="500" cy="500" r="450" fill="none" stroke="black" stroke-width="50"/>
+  <!-- Heat Waves (3 vertical wavy lines) -->
+  <path d="M350,750 Q450,650 350,550 Q250,450 350,350" fill="none" stroke="black" stroke-width="50" stroke-linecap="round"/>
+  <path d="M500,700 Q600,600 500,500 Q400,400 500,300" fill="none" stroke="black" stroke-width="50" stroke-linecap="round"/>
+  <path d="M650,750 Q750,650 650,550 Q550,450 650,350" fill="none" stroke="black" stroke-width="50" stroke-linecap="round"/>
+</svg>
