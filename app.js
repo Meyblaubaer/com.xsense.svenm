@@ -36,6 +36,7 @@ class XSenseApp extends Homey.App {
     // Triggers
     this.homey.flow.getDeviceTriggerCard('co_detected');
     this.homey.flow.getDeviceTriggerCard('device_muted');
+    this.homey.flow.getDeviceTriggerCard('smoke_test_detected');
 
     // Conditions
     // Custom flow condition removed

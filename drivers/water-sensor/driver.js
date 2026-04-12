@@ -31,9 +31,18 @@ class WaterSensorDriver extends Homey.Driver {
         id: d.id
       })));
 
+      if (!data || !Array.isArray(data.devices)) {
+        this.error('getAllDevices returned unexpected result:', data);
+        return devices;
+      }
+
       // Filter for water leak sensors
       // Supported types: SWS51, SWS0A, XWS01, and any containing 'WATER' or 'LEAK' or 'FLOOD'
       for (const device of data.devices) {
+        if (!device || !device.id) {
+          this.log(`Skipping device with missing id: ${JSON.stringify(device)}`);
+          continue;
+        }
         const deviceType = (device.type || device.deviceType || '').toUpperCase();
 
         if (deviceType.includes('SWS') || deviceType.includes('XWS') || deviceType.includes('WATER') || deviceType.includes('LEAK') || deviceType.includes('FLOOD')) {

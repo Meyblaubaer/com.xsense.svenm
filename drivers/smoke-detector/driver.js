@@ -189,10 +189,18 @@ class SmokeDetectorDriver extends Homey.Driver {
 
         // Get all devices
         const data = await api.getAllDevices();
-        this.log(`API returned ${data.devices ? data.devices.length : 0} devices`);
+        if (!data || !Array.isArray(data.devices)) {
+          this.error('getAllDevices returned unexpected result:', data);
+          return devices;
+        }
+        this.log(`API returned ${data.devices.length} devices`);
 
         // Process devices
         for (const device of data.devices) {
+          if (!device || !device.id) {
+            this.log(`Skipping device with missing id: ${JSON.stringify(device)}`);
+            continue;
+          }
           const deviceType = device.deviceType || device.type || '';
 
           // FILTER: Only include Smoke detectors

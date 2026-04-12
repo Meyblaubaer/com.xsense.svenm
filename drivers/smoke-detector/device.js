@@ -10,6 +10,7 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('SmokeDetectorDevice has been initialized');
+    this._prevSmokeStatus = null;
 
     // Force add Capability if missing (for existing devices)
     if (!this.hasCapability('measure_signal_strength')) {
@@ -54,19 +55,26 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     // Register capability listeners
     this._registerCapabilityListeners();
 
-    // Initialize capabilities directly to ensure they appear in UI
-    if (this.hasCapability('alarm_smoke') && this.getCapabilityValue('alarm_smoke') === null) {
-      this.setCapabilityValue('alarm_smoke', false).catch(this.error);
+    // Initialize capabilities to ensure fresh timestamps appear in Homey UI.
+    // Always force-set so that Homey records the current time as last-updated,
+    // preventing the "56 years ago" display when the capability was never touched.
+    const capDefaults = {
+      alarm_smoke: false,
+      alarm_co: false,
+      measure_smoke_status: 'OK',
+    };
+    for (const [cap, defaultVal] of Object.entries(capDefaults)) {
+      if (this.hasCapability(cap)) {
+        const current = this.getCapabilityValue(cap);
+        // Only force-set if still null (first add); existing values are preserved to avoid overwriting real state
+        if (current === null || current === undefined) {
+          this.setCapabilityValue(cap, defaultVal).catch(this.error);
+        }
+      }
     }
-    if (this.hasCapability('alarm_co') && this.getCapabilityValue('alarm_co') === null) {
-      this.setCapabilityValue('alarm_co', false).catch(this.error);
-    }
-    if (this.hasCapability('measure_smoke_status') && this.getCapabilityValue('measure_smoke_status') === null) {
-      this.setCapabilityValue('measure_smoke_status', 'OK').catch(this.error);
-    }
-    if (this.hasCapability('measure_signal_strength') && this.getCapabilityValue('measure_signal_strength') === null) {
-      // Default to something reasonable or leave null until update
-      // this.setCapabilityValue('measure_signal_strength', -60).catch(this.error);
+    // Always refresh measure_last_seen so the "last seen" timestamp is current
+    if (this.hasCapability('measure_last_seen')) {
+      this.setCapabilityValue('measure_last_seen', new Date().toISOString()).catch(this.error);
     }
 
     // Register Mute Action
@@ -90,15 +98,23 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       const status = deviceData.status || {};
 
       // Smoke alarm (status.a = alarm state: 0=OK, 1=Alarm)
+      // Also check alarmStatus from real-time event messages (which use a flat structure
+      // with alarmStatus instead of the shadow's status.a field). Without this check,
+      // real smoke alarms received via the @xsense/events topic never trigger alarm_smoke.
       if (this.hasCapability('alarm_smoke')) {
-        const smokeAlarm = status.a === '1' || status.a === 1;
+        const smokeFromShadow = status.a === '1' || status.a === 1;
+        // alarmStatus === 1 from an event means smoke (not CO — CO events also have coPpm > 0)
+        const coPpm = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
+        const smokeFromEvent = deviceData.alarmStatus === 1 && coPpm === 0;
+        const smokeAlarm = smokeFromShadow || smokeFromEvent;
         await this.setCapabilityValue('alarm_smoke', smokeAlarm).catch(e => this.error('Smoke alarm update failed:', e));
       }
 
       // CO alarm (if device supports it)
       if (this.hasCapability('alarm_co')) {
-        // CO alarm might be in a different status field depending on device type
-        const coAlarm = status.co === '1' || status.co === 1 || status.coAlarm === true;
+        const coPpm = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
+        // CO alarm from shadow path (status.co) or event path (coPpm > 0 or alarmStatus with CO)
+        const coAlarm = status.co === '1' || status.co === 1 || status.coAlarm === true || coPpm > 0;
         await this.setCapabilityValue('alarm_co', coAlarm).catch(e => this.error('CO alarm update failed:', e));
       }
 
@@ -117,8 +133,19 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
           statusText = 'TEST';
         } else if (status.a === '3' || status.a === 3) {
           statusText = 'MUTED';
+        } else if (deviceData.alarmStatus === 1) {
+          // Event path: alarmStatus=1 but no shadow status.a yet
+          statusText = 'ALARM';
         }
         await this.setCapabilityValue('measure_smoke_status', statusText).catch(e => this.error('Smoke status update failed:', e));
+
+        // Fire smoke_test_detected trigger on transition INTO test mode
+        if (statusText === 'TEST' && this._prevSmokeStatus !== 'TEST') {
+          this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
+            .trigger(this, { device: this.getName() })
+            .catch(e => this.error('Failed to trigger smoke_test_detected:', e));
+        }
+        this._prevSmokeStatus = statusText;
       }
 
       // Temperature (some smoke detectors have temperature sensors)

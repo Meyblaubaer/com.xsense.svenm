@@ -141,6 +141,34 @@
         "id": "device_muted"
       },
       {
+        "id": "smoke_test_detected",
+        "title": {
+          "en": "The smoke alarm test was triggered",
+          "de": "Der Rauchmelder-Test wurde ausgelöst"
+        },
+        "titleFormatted": {
+          "en": "Test of [[device]] was triggered",
+          "de": "Test von [[device]] wurde ausgelöst"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector"
+          }
+        ]
+      },
+      {
         "title": {
           "en": "A keypad button was pressed",
           "de": "Eine Keypad-Taste wurde gedrückt"
