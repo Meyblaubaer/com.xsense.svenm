@@ -1,0 +1,27 @@
+{
+  "title": {
+    "en": "The smoke alarm test was triggered",
+    "de": "Der Rauchmelder-Test wurde ausgelöst"
+  },
+  "titleFormatted": {
+    "en": "Test of [[device]] was triggered",
+    "de": "Test von [[device]] wurde ausgelöst"
+  },
+  "tokens": [
+    {
+      "name": "device",
+      "type": "string",
+      "title": {
+        "en": "Device",
+        "de": "Gerät"
+      }
+    }
+  ],
+  "args": [
+    {
+      "type": "device",
+      "name": "device",
+      "filter": "driver_id=smoke-detector"
+    }
+  ]
+}

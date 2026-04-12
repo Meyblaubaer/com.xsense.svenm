@@ -191,6 +191,29 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     try {
       await this.api.testAlarm(this.deviceData.id);
       this.log('Test alarm triggered successfully');
+
+      // Optimistically set status to TEST so Homey UI reflects the action immediately,
+      // even if the device takes a moment to echo back via MQTT (or doesn't echo at all).
+      if (this.hasCapability('measure_smoke_status')) {
+        const prev = this._prevSmokeStatus;
+        await this.setCapabilityValue('measure_smoke_status', 'TEST').catch(this.error);
+        // Fire the flow trigger for the optimistic transition
+        if (prev !== 'TEST') {
+          this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
+            .trigger(this, { device: this.getName() })
+            .catch(e => this.error('Failed to trigger smoke_test_detected:', e));
+        }
+        this._prevSmokeStatus = 'TEST';
+
+        // Reset status after 30s if device doesn't reset it via MQTT
+        setTimeout(() => {
+          if (this._prevSmokeStatus === 'TEST') {
+            this.setCapabilityValue('measure_smoke_status', 'OK').catch(this.error);
+            this._prevSmokeStatus = 'OK';
+          }
+        }, 30000);
+      }
+
       return true;
     } catch (error) {
       this.error('Failed to trigger test alarm:', error);
