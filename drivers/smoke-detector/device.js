@@ -177,6 +177,67 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
   }
 
   /**
+   * Wait for a positive test acknowledgement from MQTT/event updates.
+   */
+  async _waitForTestAck(timeoutMs = 20000) {
+    if (!this.api) {
+      throw new Error('API client not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let timeoutHandle = null;
+
+      const finish = (err) => {
+        if (settled) return;
+        settled = true;
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        this.api.removeUpdateCallback(onUpdate);
+        if (err) {
+          reject(err);
+        } else {
+          resolve(true);
+        }
+      };
+
+      const onUpdate = (type, data) => {
+        if (type !== 'device' || !data) {
+          return;
+        }
+
+        const sameId = data.id === this.deviceData.id;
+        const dataSn = data.deviceSn || data.deviceSN || data.sn;
+        const sameSn = dataSn && (dataSn === this.deviceData.deviceSn || dataSn === this.deviceData.id);
+        if (!sameId && !sameSn) {
+          return;
+        }
+
+        const status = data.status || {};
+        const smokeStatus = this.hasCapability('measure_smoke_status') ? this.getCapabilityValue('measure_smoke_status') : null;
+        const isTest =
+          status.a === 2 ||
+          status.a === '2' ||
+          data.alarmStatus === 2 ||
+          data.event === 'self_test' ||
+          data.event === 'self_test_triggered' ||
+          smokeStatus === 'TEST';
+
+        if (isTest) {
+          finish();
+        }
+      };
+
+      timeoutHandle = setTimeout(() => {
+        finish(new Error(`No test acknowledgement within ${Math.round(timeoutMs / 1000)}s`));
+      }, timeoutMs);
+
+      this.api.onUpdate(onUpdate);
+    });
+  }
+
+  /**
    * Test the alarm (triggers a test beep)
    */
   async testAlarm() {
@@ -185,15 +246,18 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     }
 
     try {
-      await this.api.testAlarm(this.deviceData.id);
-      this.log('Test alarm triggered successfully');
+      // Keep optimistic UI so users get immediate feedback.
+      if (this.hasCapability('measure_smoke_status')) {
+        await this.setCapabilityValue('measure_smoke_status', 'TEST').catch(this.error);
+      }
 
-      // Optimistically set status to TEST so Homey UI reflects the action immediately,
-      // even if the device takes a moment to echo back via MQTT (or doesn't echo at all).
+      await this.api.testAlarm(this.deviceData.id);
+      await this._waitForTestAck(20000);
+
+      this.log('Test alarm acknowledged successfully');
+
       if (this.hasCapability('measure_smoke_status')) {
         const prev = this._prevSmokeStatus;
-        await this.setCapabilityValue('measure_smoke_status', 'TEST').catch(this.error);
-        // Fire the flow trigger for the optimistic transition
         if (prev !== 'TEST') {
           this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
             .trigger(this, { device: this.getName() })
@@ -201,7 +265,6 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
         }
         this._prevSmokeStatus = 'TEST';
 
-        // Reset status after 30s if device doesn't reset it via MQTT
         setTimeout(() => {
           if (this._prevSmokeStatus === 'TEST') {
             this.setCapabilityValue('measure_smoke_status', 'OK').catch(this.error);
@@ -213,6 +276,10 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       return true;
     } catch (error) {
       this.error('Failed to trigger test alarm:', error);
+      if (this.hasCapability('measure_smoke_status')) {
+        this.setCapabilityValue('measure_smoke_status', 'OK').catch(this.error);
+        this._prevSmokeStatus = 'OK';
+      }
       throw error;
     }
   }
