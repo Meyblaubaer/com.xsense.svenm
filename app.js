@@ -16,6 +16,10 @@ class XSenseApp extends Homey.App {
     // MQTT Health Tracking (NEW)
     this.mqttHealthy = new Map(); // houseId → boolean
 
+    // Command guardrails and audit trail
+    this.commandCooldowns = new Map();
+    this.commandAuditLog = [];
+
     // Register flow card actions
     this._registerFlowCards();
 
@@ -37,42 +41,165 @@ class XSenseApp extends Homey.App {
     this.homey.flow.getDeviceTriggerCard('co_detected');
     this.homey.flow.getDeviceTriggerCard('device_muted');
     this.homey.flow.getDeviceTriggerCard('smoke_test_detected');
+    this.homey.flow.getDeviceTriggerCard('alarm_command_succeeded');
+    this.homey.flow.getDeviceTriggerCard('alarm_command_failed');
 
     // Conditions
     // Custom flow condition removed
 
-
     // Actions
     const testAlarmCard = this.homey.flow.getActionCard('test_alarm');
-    testAlarmCard.registerRunListener(async (args, state) => {
-      return await args.device.testAlarm();
+    testAlarmCard.registerRunListener(async (args) => {
+      return this._executeDeviceCommand({
+        device: args.device,
+        commandId: 'test_alarm',
+        execute: async () => args.device.testAlarm(),
+      });
+    });
+
+    const testDeviceAlarmCard = this.homey.flow.getActionCard('trigger_device_alarm_test');
+    testDeviceAlarmCard.registerRunListener(async (args) => {
+      return this._executeDeviceCommand({
+        device: args.device,
+        commandId: 'trigger_device_alarm_test',
+        execute: async () => args.device.testAlarm(),
+      });
     });
 
     // Global Fire Drill Action
     this.homey.flow.getActionCard('trigger_fire_drill')
-      .registerRunListener(async (args, state) => {
-        this.log('🚨 Starting Global Fire Drill! Triggering station fire drill...');
-        const driver = this.homey.drivers.getDriver('smoke-detector');
-        const devices = driver.getDevices();
-
-        const byStation = new Map();
-        for (const device of devices) {
-          const data = device.getData();
-          if (!data || !data.stationId) continue;
-          if (!byStation.has(data.stationId)) {
-            byStation.set(data.stationId, device);
-          }
-        }
-
-        const promises = Array.from(byStation.values()).map((device) => {
-          return device.api.triggerFireDrill(device.getData().id)
-            .then(() => this.log(`Fire drill triggered on station for ${device.getName()}`))
-            .catch(err => this.error(`Failed to trigger fire drill for ${device.getName()}:`, err));
-        });
-
-        await Promise.all(promises);
-        return true;
+      .registerRunListener(async () => {
+        return this._runGlobalFireDrill();
       });
+
+    const stationAlarmCard = this.homey.flow.getActionCard('trigger_station_alarm');
+    stationAlarmCard.registerRunListener(async () => {
+      return this._runGlobalFireDrill();
+    });
+  }
+
+  async _runGlobalFireDrill() {
+    this.log('Starting global fire drill via flow action');
+    const driver = this.homey.drivers.getDriver('smoke-detector');
+    const devices = driver ? driver.getDevices() : [];
+
+    if (!devices || devices.length === 0) {
+      throw new Error('No smoke detector devices available for fire drill');
+    }
+
+    const byStation = new Map();
+    for (const device of devices) {
+      const data = device.getData();
+      if (!data || !data.stationId) {
+        continue;
+      }
+      if (!byStation.has(data.stationId)) {
+        byStation.set(data.stationId, device);
+      }
+    }
+
+    if (byStation.size === 0) {
+      throw new Error('No station-linked smoke detector found for fire drill');
+    }
+
+    const results = await Promise.allSettled(
+      Array.from(byStation.values()).map((device) => this._executeDeviceCommand({
+        device,
+        commandId: 'trigger_station_alarm',
+        execute: async () => device.api.triggerFireDrill(device.getData().id),
+      }))
+    );
+
+    const failed = results.filter((result) => result.status === 'rejected');
+    if (failed.length === results.length) {
+      throw new Error('Fire drill failed for all stations');
+    }
+
+    return true;
+  }
+
+  _commandCooldownKey(device, commandId) {
+    const data = device && typeof device.getData === 'function' ? device.getData() : null;
+    const id = data?.id || device?.getName?.() || 'unknown-device';
+    return `${commandId}:${id}`;
+  }
+
+  _assertCooldown(device, commandId, cooldownMs = 15000) {
+    const key = this._commandCooldownKey(device, commandId);
+    const now = Date.now();
+    const lastTs = this.commandCooldowns.get(key) || 0;
+
+    if (now - lastTs < cooldownMs) {
+      const waitSec = Math.ceil((cooldownMs - (now - lastTs)) / 1000);
+      throw new Error(`Command cooldown active. Try again in ${waitSec}s.`);
+    }
+
+    this.commandCooldowns.set(key, now);
+  }
+
+  _appendCommandAudit(entry) {
+    this.commandAuditLog.push(entry);
+    if (this.commandAuditLog.length > 200) {
+      this.commandAuditLog.shift();
+    }
+  }
+
+  async _triggerCommandResultFlow({ success, device, commandId, message }) {
+    const triggerId = success ? 'alarm_command_succeeded' : 'alarm_command_failed';
+    const card = this.homey.flow.getDeviceTriggerCard(triggerId);
+    if (!card) {
+      return;
+    }
+
+    await card.trigger(device, {
+      device: device.getName(),
+      command: commandId,
+      message: message,
+    }).catch((error) => {
+      this.error(`Failed to trigger ${triggerId}:`, error);
+    });
+  }
+
+  async _executeDeviceCommand({ device, commandId, execute }) {
+    const startedAt = new Date().toISOString();
+    this._assertCooldown(device, commandId);
+
+    try {
+      const result = await execute();
+      const message = `${commandId} executed successfully`;
+      this._appendCommandAudit({
+        timestamp: startedAt,
+        success: true,
+        deviceId: device.getData()?.id,
+        deviceName: device.getName(),
+        commandId,
+        message,
+      });
+      await this._triggerCommandResultFlow({
+        success: true,
+        device,
+        commandId,
+        message,
+      });
+      return result;
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      this._appendCommandAudit({
+        timestamp: startedAt,
+        success: false,
+        deviceId: device.getData()?.id,
+        deviceName: device.getName(),
+        commandId,
+        message,
+      });
+      await this._triggerCommandResultFlow({
+        success: false,
+        device,
+        commandId,
+        message,
+      });
+      throw error;
+    }
   }
 
   _scheduleDeviceSnRepair() {

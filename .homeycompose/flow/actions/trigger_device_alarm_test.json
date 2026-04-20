@@ -1,0 +1,21 @@
+{
+  "title": {
+    "en": "Trigger device alarm test",
+    "de": "Geräte-Alarmtest auslösen"
+  },
+  "hint": {
+    "en": "Triggers a safe test alarm on one supported device",
+    "de": "Löst einen sicheren Testalarm auf einem unterstützten Gerät aus"
+  },
+  "titleFormatted": {
+    "en": "Trigger alarm test on [[device]]",
+    "de": "Alarmtest auf [[device]] auslösen"
+  },
+  "args": [
+    {
+      "type": "device",
+      "name": "device",
+      "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+    }
+  ]
+}

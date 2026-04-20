@@ -1,0 +1,10 @@
+{
+  "title": {
+    "en": "Trigger station fire drill",
+    "de": "Stations-Feueralarmtest auslösen"
+  },
+  "hint": {
+    "en": "Runs fire drill on each known smoke detector station",
+    "de": "Startet einen Feueralarmtest auf allen bekannten Rauchmelder-Stationen"
+  }
+}

@@ -11,7 +11,7 @@
     {
       "type": "device",
       "name": "device",
-      "filter": "driver_id=smoke-detector|co-detector"
+      "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
     }
   ]
 }

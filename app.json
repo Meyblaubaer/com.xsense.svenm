@@ -75,7 +75,177 @@
     }
   },
   "flow": {
+    "actions": [
+      {
+        "title": {
+          "en": "Mute the alarm",
+          "de": "Alarm stummschalten"
+        },
+        "titleFormatted": {
+          "en": "Mute the alarm of [[device]]",
+          "de": "Alarm von [[device]] stummschalten"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector"
+          }
+        ],
+        "id": "mute_alarm"
+      },
+      {
+        "title": {
+          "en": "Test the alarm",
+          "de": "Alarm testen"
+        },
+        "titleFormatted": {
+          "en": "Test the alarm of [[device]]",
+          "de": "Alarm von [[device]] testen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "test_alarm"
+      },
+      {
+        "title": {
+          "en": "Trigger device alarm test",
+          "de": "Geräte-Alarmtest auslösen"
+        },
+        "hint": {
+          "en": "Triggers a safe test alarm on one supported device",
+          "de": "Löst einen sicheren Testalarm auf einem unterstützten Gerät aus"
+        },
+        "titleFormatted": {
+          "en": "Trigger alarm test on [[device]]",
+          "de": "Alarmtest auf [[device]] auslösen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "trigger_device_alarm_test"
+      },
+      {
+        "title": {
+          "en": "Start a fire drill",
+          "de": "Feueralarm-Test starten"
+        },
+        "hint": {
+          "en": "Tests all smoke detectors in the system",
+          "de": "Testet alle Rauchmelder im System"
+        },
+        "id": "trigger_fire_drill"
+      },
+      {
+        "title": {
+          "en": "Trigger station fire drill",
+          "de": "Stations-Feueralarmtest auslösen"
+        },
+        "hint": {
+          "en": "Runs fire drill on each known smoke detector station",
+          "de": "Startet einen Feueralarmtest auf allen bekannten Rauchmelder-Stationen"
+        },
+        "id": "trigger_station_alarm"
+      }
+    ],
     "triggers": [
+      {
+        "title": {
+          "en": "Alarm command failed",
+          "de": "Alarmbefehl fehlgeschlagen"
+        },
+        "titleFormatted": {
+          "en": "[[command]] failed on [[device]]",
+          "de": "[[command]] auf [[device]] fehlgeschlagen"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          },
+          {
+            "name": "command",
+            "type": "string",
+            "title": {
+              "en": "Command",
+              "de": "Befehl"
+            }
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "title": {
+              "en": "Message",
+              "de": "Meldung"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "alarm_command_failed"
+      },
+      {
+        "title": {
+          "en": "Alarm command succeeded",
+          "de": "Alarmbefehl erfolgreich"
+        },
+        "titleFormatted": {
+          "en": "[[command]] succeeded on [[device]]",
+          "de": "[[command]] auf [[device]] erfolgreich"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          },
+          {
+            "name": "command",
+            "type": "string",
+            "title": {
+              "en": "Command",
+              "de": "Befehl"
+            }
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "title": {
+              "en": "Message",
+              "de": "Meldung"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "alarm_command_succeeded"
+      },
       {
         "title": {
           "en": "Carbon monoxide is detected",
@@ -206,6 +376,34 @@
       },
       {
         "title": {
+          "en": "The smoke alarm test was triggered",
+          "de": "Der Rauchmelder-Test wurde ausgelöst"
+        },
+        "titleFormatted": {
+          "en": "Test of [[device]] was triggered",
+          "de": "Test von [[device]] wurde ausgelöst"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "smoke_test_detected"
+      },
+      {
+        "title": {
           "en": "The SOS button was pressed",
           "de": "Die SOS-Taste wurde gedrückt"
         },
@@ -280,55 +478,6 @@
           }
         ],
         "id": "is_smoke_detected"
-      }
-    ],
-    "actions": [
-      {
-        "title": {
-          "en": "Mute the alarm",
-          "de": "Alarm stummschalten"
-        },
-        "titleFormatted": {
-          "en": "Mute the alarm of [[device]]",
-          "de": "Alarm von [[device]] stummschalten"
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=smoke-detector|co-detector"
-          }
-        ],
-        "id": "mute_alarm"
-      },
-      {
-        "title": {
-          "en": "Test the alarm",
-          "de": "Alarm testen"
-        },
-        "titleFormatted": {
-          "en": "Test the alarm of [[device]]",
-          "de": "Alarm von [[device]] testen"
-        },
-        "args": [
-          {
-            "type": "device",
-            "name": "device",
-            "filter": "driver_id=smoke-detector|co-detector"
-          }
-        ],
-        "id": "test_alarm"
-      },
-      {
-        "title": {
-          "en": "Start a fire drill",
-          "de": "Feueralarm-Test starten"
-        },
-        "hint": {
-          "en": "Tests all smoke detectors in the system",
-          "de": "Testet alle Rauchmelder im System"
-        },
-        "id": "trigger_fire_drill"
       }
     ]
   },
