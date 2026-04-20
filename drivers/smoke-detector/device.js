@@ -72,10 +72,6 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
         }
       }
     }
-    // Always refresh measure_last_seen so the "last seen" timestamp is current
-    if (this.hasCapability('measure_last_seen')) {
-      this.setCapabilityValue('measure_last_seen', new Date().toISOString()).catch(this.error);
-    }
 
     // Register Mute Action
     this.homey.flow.getActionCard('mute_alarm')

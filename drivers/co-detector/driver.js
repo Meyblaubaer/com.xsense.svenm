@@ -1,240 +1,39 @@
 'use strict';
 
 const Homey = require('homey');
+const PairingHelper = require('../../lib/PairingHelper');
+
+const CO_TYPES = ['XC01-M', 'XC04-WX', 'XC0C-IR', 'XC0C-MR', 'XC01-WX', 'XC01WX'];
 
 class CoDetectorDriver extends Homey.Driver {
-  /**
-   * onInit is called when the driver is initialized.
-   */
   async onInit() {
     this.log('CoDetectorDriver has been initialized');
   }
 
-  /**
-   * onPairListDevices is called when a user is adding a device
-   * and the 'list_devices' template is used.
-   */
-  async onPairListDevices() {
-    this.log('=== onPairListDevices called ===');
-    const devices = [];
-
-    try {
-      // Get credentials from driver instance (set in onPair login handler)
-      if (!this.pairingCredentials) {
-        this.error('No pairing credentials available');
-        throw new Error('No credentials provided');
-      }
-
-      const { username, password } = this.pairingCredentials;
-      this.log(`Getting devices for user: ${username}`);
-
-      // Get API client
-      const api = await this.homey.app.getAPIClient(username, password);
-
-      // Get all devices
-      const data = await api.getAllDevices();
-      this.log(`API returned data:`, JSON.stringify(data, null, 2));
-
-      // Process devices
-      for (const device of data.devices) {
-        // Only add CO detectors
-        const deviceType = (device.deviceType || device.type || '').toUpperCase();
-        this.log(`Processing device: ${device.deviceName}, type: ${deviceType}, id: ${device.id}`);
-
-        // FILTER: Only include CO-only Detectors (not Smoke/CO combos which are in smoke-detector)
-        // Supported types: XC01-M, XC04-WX, XC0C-iR, XC0C-MR
-        const coTypes = ['XC01-M', 'XC04-WX', 'XC0C-IR', 'XC0C-MR'];
-        
-        if (!coTypes.some(t => deviceType.toUpperCase().includes(t.toUpperCase().replace('-', '')))) {
-          this.log(`Skipping device ${device.deviceName} (Type: ${deviceType}) - Not a dedicated CO detector`);
-          continue;
-        }
-
-        // FIXED: Naming convention [Station Name] [Device Name]
-        let name = device.deviceName || device.name || `XSense ${deviceType}`;
-        // Note: Station prefix logic removed as per user preference in other drivers
-
-        const deviceEntry = {
-          name: name,
-          data: {
-            id: device.id,
-            stationId: device.stationId,
-            houseId: device.houseId
-          },
-          store: {
-            email: username,
-            password: password,
-            stationId: device.stationId,
-            houseId: device.houseId,
-            deviceType: deviceType
-          }
-        };
-
-        this.log(`Device entry created:`, JSON.stringify(deviceEntry, null, 2));
-        devices.push(deviceEntry);
-      }
-
-      this.log(`=== Returning ${devices.length} devices ===`);
-      this.log('Devices array:', JSON.stringify(devices, null, 2));
-      return devices;
-    } catch (error) {
-      this.error('Error listing devices:', error);
-      this.error('Stack:', error.stack);
-      throw error;
-    }
-  }
-
-  /**
-   * Determine device capabilities based on device type and available data
-   */
-  _getCapabilities(device) {
-    const capabilities = ['alarm_co'];
-
-    // Battery capabilities
-    if (device.batInfo !== undefined || device.batteryLevel !== undefined) {
-      capabilities.push('measure_battery');
-
-      // Add battery alarm if battery percentage can be determined
-      if (device.batInfo !== undefined) {
-        capabilities.push('alarm_battery');
-      }
+  _matchesCoDevice(_device, type) {
+    const normalized = String(type || '').replace(/\s+/g, '');
+    if (CO_TYPES.some((candidate) => normalized.includes(candidate.replace(/\s+/g, '')))) {
+      return true;
     }
 
-    // Measure CO
-    capabilities.push('measure_co');
-
-    return capabilities;
+    return normalized.startsWith('XC') && !normalized.includes('SC');
   }
 
-  /**
-   * Handle pairing - with login_credentials template
-   */
+  async onPairListDevices(session) {
+    return PairingHelper.listDevicesForPairing({
+      driver: this,
+      session,
+      matchLabel: 'CO detectors',
+      matchDevice: (device, type) => this._matchesCoDevice(device, type),
+    });
+  }
+
   async onPair(session) {
     this.log('Pairing session started');
-    
-    // Store session reference for other methods (like other drivers do)
-    this.homey.app.currentPairSession = session;
-
-    // Check for stored credentials (FIXED: Async for encryption)
-    const stored = await this.homey.app.getStoredCredentials();
-    if (stored.email && stored.password) {
-      this.log('Found stored credentials, attempting auto-login');
-      try {
-        await this.homey.app.getAPIClient(stored.email, stored.password);
-        // FIX: Store credentials in session object (like all other working drivers)
-        session.credentials = {
-          username: stored.email,
-          password: stored.password
-        };
-        await session.showView('list_devices');
-      } catch (error) {
-        this.log('Auto-login failed with stored credentials');
-      }
-    }
-
-    // For login_credentials template, we need to handle the 'login' event
-    session.setHandler('login', async (data) => {
-      try {
-        const { username, password } = data;
-        this.log(`Login attempt for user: ${username}`);
-
-        // Try to authenticate
-        const api = await this.homey.app.getAPIClient(username, password);
-
-        // FIX: Store credentials in session object (like all other working drivers)
-        session.credentials = {
-          username: username,
-          password: password
-        };
-
-        // Save for future
-        this.homey.app.setStoredCredentials(username, password);
-
-        this.log('Login successful, credentials stored in session');
-        return true;
-      } catch (error) {
-        this.error('Login failed:', error);
-        throw new Error(`Login failed: ${error.message || error}`);
-      }
-    });
-
-    // Manually handle list_devices since we're using login_credentials template
-    session.setHandler('list_devices', async () => {
-      this.log('list_devices handler called');
-
-      // FIX: Check session.credentials (like all other working drivers)
-      if (!session.credentials) {
-        this.error('No credentials available in list_devices handler');
-        throw new Error('Please login first');
-      }
-
-      const devices = [];
-      try {
-        const { username, password } = session.credentials;
-        this.log(`Getting devices for user: ${username}`);
-
-        // Get API client
-        const api = await this.homey.app.getAPIClient(username, password);
-
-        // Get all devices
-        const data = await api.getAllDevices();
-        this.log(`API returned ${data.devices ? data.devices.length : 0} devices`);
-
-        // Log all devices for debugging
-        this.log('All devices from API:', data.devices.map(d => ({
-          name: d.deviceName || d.name,
-          type: d.type,
-          deviceType: d.deviceType,
-          id: d.id
-        })));
-
-        // Process devices
-        for (const device of data.devices) {
-          const deviceType = (device.deviceType || device.type || '').toUpperCase();
-
-          // FILTER: Only include CO-only Detectors (not Smoke/CO combos which are in smoke-detector)
-          // Supported types: XC01-M, XC04-WX, XC0C-iR, XC0C-MR, XC01-WX
-          // Also include any device with 'XC' prefix that doesn't have smoke capability
-          const coTypes = ['XC01-M', 'XC04-WX', 'XC0C-IR', 'XC0C-MR', 'XC01-WX', 'XC01WX'];
-          
-          // Check if it's a CO-only device (XC prefix but not SC which is smoke/CO combo)
-          const isCOOnly = coTypes.some(t => deviceType.includes(t.replace('-', ''))) ||
-                          (deviceType.startsWith('XC') && !deviceType.includes('SC'));
-          
-          if (!isCOOnly) {
-            this.log(`Skipping device ${device.deviceName} (Type: ${deviceType}) - Not a dedicated CO detector`);
-            continue;
-          }
-
-          // FIXED: Naming convention
-          let name = device.deviceName || device.name || `XSense ${deviceType}`;
-
-          const deviceEntry = {
-            name: name,
-            data: {
-              id: device.id,
-              stationId: device.stationId,
-              houseId: device.houseId
-            },
-            store: {
-              email: username,
-              password: password,
-              stationId: device.stationId,
-              houseId: device.houseId,
-              deviceType: deviceType
-            }
-          };
-
-          this.log(`Adding device: ${deviceEntry.name}`);
-          devices.push(deviceEntry);
-        }
-
-        this.log(`Returning ${devices.length} devices`);
-        return devices;
-      } catch (error) {
-        this.error('Error listing devices:', error);
-        throw error;
-      }
+    await PairingHelper.registerPairHandlers({
+      driver: this,
+      session,
+      listDevicesHandler: async () => this.onPairListDevices(session),
     });
   }
 }

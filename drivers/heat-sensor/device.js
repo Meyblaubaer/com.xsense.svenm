@@ -36,6 +36,13 @@ class HeatDetectorDevice extends XSenseDeviceBase {
   async testAlarm() {
     try {
       await this.api.testAlarm(this.deviceData.id);
+
+      await this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
+        .trigger(this, {
+          device: this.getName(),
+        })
+        .catch((error) => this.error('Failed to trigger smoke_test_detected for heat detector:', error));
+
       return true;
     } catch (error) {
       this.error('Error testing alarm:', error);

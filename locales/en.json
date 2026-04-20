@@ -2,7 +2,9 @@
   "pair": {
     "error": {
       "login_failed": "Login failed. Please check your credentials.",
-      "list_failed": "Failed to retrieve devices. Please try again."
+      "list_failed": "Failed to retrieve devices. Please try again.",
+      "not_logged_in": "Please log in to X-Sense first.",
+      "no_supported_devices": "No supported {{deviceType}} found. Verify that the model is supported, shared with the Homey account, and connected via the required base station."
     }
   },
   "error": {
