@@ -211,12 +211,14 @@ class SmokeDetectorDriver extends Homey.Driver {
           //   - SC06-WX, SC07-WX, SC07-MR: Smoke/CO Combo (WiFi)
           //   - XP02S-MR, XP0A-MR, XP0A-iR: Smoke/CO Combo
           //   - SD11-MR: Smoke only
+          //   - XS0F-PMA: 230V smoke detector with RFM2300ZW-B RF module
           // Exclude: Heat (XH), Water (SWS), Temp (STH), Base Stations (SBS), CO-only (XC without smoke)
           const smokeTypes = [
             'XS01-M', 'XS01-WX', 'XS03-iWX', 'XS03-WX', 'XS0B-MR', 'XS0B-iR', 'XS0D-MR',
             'SC06-WX', 'SC07-WX', 'SC07-MR',
             'XP02S-MR', 'XP0A-MR', 'XP0A-iR', 'XP0A',
-            'SD11-MR'
+            'SD11-MR',
+            'XS0F-PMA'
           ];
           
           if (!smokeTypes.some(t => deviceType.toUpperCase().includes(t.toUpperCase()))) {
