@@ -78,5 +78,8 @@
   },
   "1.1.9": {
     "en": "Bugfixing and contribution capabilities"
+  },
+  "1.1.14": {
+    "en": "Fixed device report timestamps and reduced duplicate cloud and device updates. Fallback polling now runs only when MQTT is unhealthy."
   }
 }
