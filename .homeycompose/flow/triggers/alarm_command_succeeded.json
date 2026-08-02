@@ -1,0 +1,43 @@
+{
+  "title": {
+    "en": "Alarm command succeeded",
+    "de": "Alarmbefehl erfolgreich"
+  },
+  "titleFormatted": {
+    "en": "[[command]] succeeded on [[device]]",
+    "de": "[[command]] auf [[device]] erfolgreich"
+  },
+  "tokens": [
+    {
+      "name": "device",
+      "type": "string",
+      "title": {
+        "en": "Device",
+        "de": "Gerät"
+      }
+    },
+    {
+      "name": "command",
+      "type": "string",
+      "title": {
+        "en": "Command",
+        "de": "Befehl"
+      }
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "title": {
+        "en": "Message",
+        "de": "Meldung"
+      }
+    }
+  ],
+  "args": [
+    {
+      "type": "device",
+      "name": "device",
+      "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+    }
+  ]
+}

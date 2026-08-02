@@ -16,6 +16,10 @@ class HeatDetectorDevice extends XSenseDeviceBase {
     if (this.hasCapability('alarm_heat') && this.getCapabilityValue('alarm_heat') === null) {
       this.setCapabilityValue('alarm_heat', false).catch(this.error);
     }
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing heat detector:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -36,6 +40,13 @@ class HeatDetectorDevice extends XSenseDeviceBase {
   async testAlarm() {
     try {
       await this.api.testAlarm(this.deviceData.id);
+
+      await this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
+        .trigger(this, {
+          device: this.getName(),
+        })
+        .catch((error) => this.error('Failed to trigger smoke_test_detected for heat detector:', error));
+
       return true;
     } catch (error) {
       this.error('Error testing alarm:', error);

@@ -1,0 +1,10 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "MQTT Connected",
+    "de": "MQTT verbunden"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

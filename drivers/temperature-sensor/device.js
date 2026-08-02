@@ -7,13 +7,7 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('TemperatureSensorDevice has been initialized');
-    this.log('Temp device identifiers:', {
-      id: this.deviceData?.id,
-      deviceSn: this.deviceData?.deviceSn,
-      stationId: this.deviceData?.stationId,
-      houseId: this.deviceData?.houseId,
-      deviceType: this.deviceData?.deviceType,
-    });
+    this.log(`Temperature device type=${this.deviceData?.deviceType || 'unknown'}`);
 
     // Force add Capability if missing (for existing devices)
     if (!this.hasCapability('measure_signal_strength')) {
@@ -30,24 +24,14 @@ class TemperatureSensorDevice extends XSenseDeviceBase {
     this.previousTemp = null;
     this.previousHumidity = null;
 
-    // Setup API client (uses base class _initializeCommon())
-    await this._setupAPIClient();
-
-    // Register update callback (uses base class _registerUpdateCallback())
-    this._registerUpdateCallback();
-
     try {
-      // Connect MQTT for real-time updates (important for STH51/STH0A)
-      await this.api.connectMQTT(this.deviceData.houseId, this.deviceData.stationId);
-
-      // Initial Sync Request (only once, not duplicated)
+      await this._startCloudUpdates({ pollIntervalMs: 300000 });
       await this._requestTempDataSync();
-
-      // Poll every 5 minutes (MQTT provides real-time updates too)
+      clearInterval(this.pollInterval);
       this.pollInterval = setInterval(async () => {
         await this._requestTempDataSync();
-      }, 300000); // 5 minutes (as per Android App)
-
+        await this.updateDevice();
+      }, 300000);
     } catch (error) {
       this.error('Error initializing device:', error);
       this.setUnavailable(this.homey.__('error.initialization_failed'));

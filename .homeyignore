@@ -39,6 +39,7 @@ hassio_py/
 
 # Documentation & Backups
 *.md
+audit-data/
 Github.md
 README.md.bak
 README.md.bak2

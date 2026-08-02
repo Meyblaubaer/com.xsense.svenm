@@ -13,6 +13,10 @@ class MotionSensorDevice extends XSenseDeviceBase {
     if (this.hasCapability('alarm_motion') && this.getCapabilityValue('alarm_motion') === null) {
       this.setCapabilityValue('alarm_motion', false).catch(this.error);
     }
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing motion sensor:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -26,10 +30,9 @@ class MotionSensorDevice extends XSenseDeviceBase {
     try {
       // Update motion alarm
       if (this.hasCapability('alarm_motion')) {
-        const isMoved = deviceData.isMoved ||
-                        (deviceData.status && deviceData.status.isMoved);
-        const motionDetected = isMoved === true || isMoved === 1 || isMoved === '1' || isMoved === 'true';
-        await this.setCapabilityValue('alarm_motion', motionDetected);
+        const isMoved = this._getFirstValue(deviceData, ['isMoved'], deviceData.status);
+        const motionDetected = this._normalizeBool(isMoved);
+        if (motionDetected !== undefined) await this.setCapabilityValue('alarm_motion', motionDetected);
       }
     } catch (error) {
       this.error('Error handling motion-specific device update:', error);

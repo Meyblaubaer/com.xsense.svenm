@@ -167,6 +167,14 @@ desktop.ini
 *mqtt*.json
 xsense_mqtt_*.json
 xsense_debug_*.json
+!.homeycompose/capabilities/alarm_mqtt_connected.json
 
 # Homey changelog (auto-generated)
 .homeychangelog.json
+
+# Temporary source snapshots used to build the issue coverage matrix
+audit-data/
+
+# Maintained implementation audits (excluded from the Homey package separately)
+!docs/HACS_ADAPTATION_PLAN_2026-07-27.md
+!docs/DIAGNOSTICS_FINDINGS_2026-08-02.md

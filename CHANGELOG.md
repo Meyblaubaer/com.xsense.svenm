@@ -248,3 +248,13 @@
 Basierend auf der ausgezeichneten Arbeit von:
 - [@theosnel](https://github.com/theosnel) - python-xsense Library
 - [@Jarnsen](https://github.com/Jarnsen) - Home Assistant Integration
+## 1.1.12
+
+- Fixed real-time updates for water, CO, heat, door, motion and mailbox devices.
+- Added model-aware pairing for XS0F-PMA, SD19-MN, SAL51 and standalone SWS0B devices.
+- Added recursive SBS50 alarm parsing for `devs`, `notices`, safe-alarm and safe-notice payloads.
+- Separated smoke, CO, water, self-test, mute and alarm-clear events.
+- Fixed offline and last-seen reporting and stopped presenting unknown CO values as zero.
+- Registered global Flow listeners once and added canonical MQTT/XS0F capabilities.
+- Added subscription acknowledgement tracking, control polling and redacted diagnostics.
+- Added regression tests for model classification, pairing and alarm normalization.

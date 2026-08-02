@@ -8,6 +8,10 @@ class MailboxAlarmDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('MailboxAlarmDevice has been initialized');
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing mailbox alarm:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -28,6 +32,13 @@ class MailboxAlarmDevice extends XSenseDeviceBase {
   async testAlarm() {
     try {
       await this.api.testAlarm(this.deviceData.id);
+
+      await this.homey.flow.getDeviceTriggerCard('smoke_test_detected')
+        .trigger(this, {
+          device: this.getName(),
+        })
+        .catch((error) => this.error('Failed to trigger smoke_test_detected for mailbox alarm:', error));
+
       return true;
     } catch (error) {
       this.error('Error testing alarm:', error);

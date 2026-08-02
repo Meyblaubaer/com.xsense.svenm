@@ -1,0 +1,10 @@
+{
+  "type": "boolean",
+  "title": {
+    "en": "Removed From Base",
+    "de": "Von Basis entfernt"
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor"
+}

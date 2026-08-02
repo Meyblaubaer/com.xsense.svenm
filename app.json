@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.xsense.svenm",
-  "version": "1.1.8",
+  "version": "1.1.12",
   "compatibility": ">=12.2.0",
   "sdk": 3,
   "name": {
@@ -76,6 +76,94 @@
   },
   "flow": {
     "triggers": [
+      {
+        "title": {
+          "en": "Alarm command failed",
+          "de": "Alarmbefehl fehlgeschlagen"
+        },
+        "titleFormatted": {
+          "en": "[[command]] failed on [[device]]",
+          "de": "[[command]] auf [[device]] fehlgeschlagen"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          },
+          {
+            "name": "command",
+            "type": "string",
+            "title": {
+              "en": "Command",
+              "de": "Befehl"
+            }
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "title": {
+              "en": "Message",
+              "de": "Meldung"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "alarm_command_failed"
+      },
+      {
+        "title": {
+          "en": "Alarm command succeeded",
+          "de": "Alarmbefehl erfolgreich"
+        },
+        "titleFormatted": {
+          "en": "[[command]] succeeded on [[device]]",
+          "de": "[[command]] auf [[device]] erfolgreich"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          },
+          {
+            "name": "command",
+            "type": "string",
+            "title": {
+              "en": "Command",
+              "de": "Befehl"
+            }
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "title": {
+              "en": "Message",
+              "de": "Meldung"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "alarm_command_succeeded"
+      },
       {
         "title": {
           "en": "Carbon monoxide is detected",
@@ -206,6 +294,34 @@
       },
       {
         "title": {
+          "en": "The smoke alarm test was triggered",
+          "de": "Der Rauchmelder-Test wurde ausgelöst"
+        },
+        "titleFormatted": {
+          "en": "Test of [[device]] was triggered",
+          "de": "Test von [[device]] wurde ausgelöst"
+        },
+        "tokens": [
+          {
+            "name": "device",
+            "type": "string",
+            "title": {
+              "en": "Device",
+              "de": "Gerät"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "smoke_test_detected"
+      },
+      {
+        "title": {
           "en": "The SOS button was pressed",
           "de": "Die SOS-Taste wurde gedrückt"
         },
@@ -314,10 +430,32 @@
           {
             "type": "device",
             "name": "device",
-            "filter": "driver_id=smoke-detector|co-detector"
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
           }
         ],
         "id": "test_alarm"
+      },
+      {
+        "title": {
+          "en": "Trigger device alarm test",
+          "de": "Geräte-Alarmtest auslösen"
+        },
+        "hint": {
+          "en": "Triggers a safe test alarm on one supported device",
+          "de": "Löst einen sicheren Testalarm auf einem unterstützten Gerät aus"
+        },
+        "titleFormatted": {
+          "en": "Trigger alarm test on [[device]]",
+          "de": "Alarmtest auf [[device]] auslösen"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=smoke-detector|co-detector|heat-sensor|mailbox-alarm"
+          }
+        ],
+        "id": "trigger_device_alarm_test"
       },
       {
         "title": {
@@ -329,6 +467,17 @@
           "de": "Testet alle Rauchmelder im System"
         },
         "id": "trigger_fire_drill"
+      },
+      {
+        "title": {
+          "en": "Trigger station fire drill",
+          "de": "Stations-Feueralarmtest auslösen"
+        },
+        "hint": {
+          "en": "Runs fire drill on each known smoke detector station",
+          "de": "Startet einen Feueralarmtest auf allen bekannten Rauchmelder-Stationen"
+        },
+        "id": "trigger_station_alarm"
       }
     ]
   },
@@ -1225,11 +1374,31 @@
     }
   ],
   "capabilities": {
+    "alarm_ac_break": {
+      "type": "boolean",
+      "title": {
+        "en": "AC Power Failure",
+        "de": "Netzstromausfall"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
     "alarm_activate": {
       "type": "boolean",
       "title": {
         "en": "Activated",
         "de": "Aktiviert"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor"
+    },
+    "alarm_base_removed": {
+      "type": "boolean",
+      "title": {
+        "en": "Removed From Base",
+        "de": "Von Basis entfernt"
       },
       "getable": true,
       "setable": false,
