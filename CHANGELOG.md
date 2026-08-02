@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.1.13
+
+- Correct X-Sense compact timestamps and rename the value to "Last Device Report".
+- Coalesce duplicate station and temperature updates.
+- Ignore unrelated updates in device listeners without noisy logs.
+- Skip fallback polling while MQTT is healthy for all active houses.
+
 ## Version 1.1.7
 
 ### 🔧 Bug Fixes

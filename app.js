@@ -2,6 +2,7 @@
 
 const Homey = require('homey');
 const XSenseAPI = require('./lib/XSenseAPI');
+const { shouldPollForMQTT } = require('./lib/MQTTPollingPolicy');
 
 class XSenseApp extends Homey.App {
   /**
@@ -359,6 +360,7 @@ class XSenseApp extends Homey.App {
       try {
         await client.init();
         this.apiClients.set(key, client);
+        this.lastControlPoll.set(key, Date.now());
         return client;
       } catch (error) {
         this.apiClients.delete(key);
@@ -382,12 +384,8 @@ class XSenseApp extends Homey.App {
           continue;
         }
 
-        // Check if MQTT is healthy for all houses of this client
-        const houses = Array.from(client.houses.values());
-        const needsPolling = houses.some(house => {
-          const isHealthy = this.mqttHealthy.get(house.houseId);
-          return isHealthy !== true; // Poll if unhealthy or unknown
-        });
+        // Ignore account houses without a paired Homey device/MQTT client.
+        const needsPolling = shouldPollForMQTT(client, this.mqttHealthy);
 
         const now = Date.now();
         const lastPoll = this.lastControlPoll.get(key) || 0;
@@ -415,8 +413,11 @@ class XSenseApp extends Homey.App {
    * Called by XSenseAPI when MQTT connects/disconnects
    */
   setMQTTHealth(houseId, isHealthy) {
+    const previous = this.mqttHealthy.get(houseId);
     this.mqttHealthy.set(houseId, isHealthy);
-    this.log(`MQTT health for house ${houseId}: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+    if (previous !== isHealthy) {
+      this.log(`MQTT health changed: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+    }
   }
 
   /**
