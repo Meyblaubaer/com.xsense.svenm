@@ -166,7 +166,6 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
         }
       }
 
-      this.log('Smoke detector device update completed');
     } catch (error) {
       this.error('Error handling smoke detector device update:', error);
     }

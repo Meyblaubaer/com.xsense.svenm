@@ -1,8 +1,8 @@
 {
     "type": "string",
     "title": {
-        "en": "Last Seen",
-        "de": "Zuletzt gesehen"
+        "en": "Last Device Report",
+        "de": "Letzter Gerätebericht"
     },
     "getable": true,
     "setable": false,
