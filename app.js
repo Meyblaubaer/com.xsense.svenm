@@ -2,7 +2,10 @@
 
 const Homey = require('homey');
 const XSenseAPI = require('./lib/XSenseAPI');
-const { shouldPollForMQTT } = require('./lib/MQTTPollingPolicy');
+const {
+  isFallbackPollDue,
+  shouldPollForMQTT,
+} = require('./lib/MQTTPollingPolicy');
 
 class XSenseApp extends Homey.App {
   /**
@@ -389,15 +392,22 @@ class XSenseApp extends Homey.App {
 
         const now = Date.now();
         const lastPoll = this.lastControlPoll.get(key) || 0;
-        const healthyControlPollDue = (now - lastPoll) >= 300000;
-        if (needsPolling || healthyControlPollDue) {
-          this.log(`Polling updates for client (${needsPolling ? 'MQTT unhealthy or unknown' : 'scheduled control poll'})`);
+        const fallbackPollDue = isFallbackPollDue(
+          client,
+          this.mqttHealthy,
+          lastPoll,
+          now,
+        );
+        if (fallbackPollDue) {
+          this.log('Polling updates for client (MQTT unhealthy or unknown)');
           await client.getAllDevices();
           this.lastControlPoll.set(key, now);
         } else {
           // Log less frequently (only every 10 minutes)
           if (!this._lastSkipLog || (Date.now() - this._lastSkipLog) > 600000) {
-            this.log('Skipping poll - MQTT is healthy for all houses');
+            this.log(needsPolling
+              ? 'Skipping fallback poll - retry interval has not elapsed'
+              : 'Skipping poll - MQTT is healthy for all houses');
             this._lastSkipLog = Date.now();
           }
         }

@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 1.1.14
+
+- Share periodic cloud updates between devices on the same station.
+- Throttle fallback discovery and run it only while MQTT is unhealthy.
+
 ## Version 1.1.13
 
 - Correct X-Sense compact timestamps and rename the value to "Last Device Report".
