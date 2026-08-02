@@ -8,6 +8,10 @@ class WaterSensorDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('WaterSensorDevice has been initialized');
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing water sensor:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -21,17 +25,15 @@ class WaterSensorDevice extends XSenseDeviceBase {
     try {
       // Update water leak alarm
       if (this.hasCapability('alarm_water')) {
-        let waterDetected = false;
-
-        if (deviceData.isOpen === "1" || deviceData.isOpen === 1) {
-          waterDetected = true;
-        } else if (deviceData.waterDetected === true || deviceData.waterDetected === 1) {
-          waterDetected = true;
-        } else if (deviceData.alarmStatus === true || deviceData.alarmStatus === 1) {
-          waterDetected = true;
+        const status = deviceData.status || {};
+        let waterDetected;
+        if (deviceData.normalizedEvent === 'water_alarm') waterDetected = true;
+        else if (deviceData.normalizedEvent === 'alarm_clear') waterDetected = false;
+        else {
+          const raw = this._getFirstValue(deviceData, ['waterDetected', 'isOpen', 'alarmStatus'], status);
+          if (raw !== undefined) waterDetected = this._normalizeBool(raw);
         }
-
-        await this.setCapabilityValue('alarm_water', waterDetected);
+        if (waterDetected !== undefined) await this.setCapabilityValue('alarm_water', waterDetected);
       }
 
       // Update battery level

@@ -4,12 +4,13 @@
       "login_failed": "Login failed. Please check your credentials.",
       "list_failed": "Failed to retrieve devices. Please try again.",
       "not_logged_in": "Please log in to X-Sense first.",
-      "no_supported_devices": "No supported {{deviceType}} found. Verify that the model is supported, shared with the Homey account, and connected via the required base station."
+      "no_supported_devices": "No supported devices found. Verify that the model is supported, shared with the Homey account, and connected via the required base station."
     }
   },
   "error": {
     "initialization_failed": "Device initialization failed",
     "device_not_found": "Device not found",
+    "device_offline": "Device reported offline",
     "update_failed": "Failed to update device data",
     "test_alarm_failed": "Failed to test alarm",
     "another_device_logged_in": "Another device is logged in to your X-Sense account. Please log out of X-Sense app on ALL devices.",

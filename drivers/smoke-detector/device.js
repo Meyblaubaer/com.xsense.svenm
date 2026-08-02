@@ -1,6 +1,7 @@
 'use strict';
 
 const XSenseDeviceBase = require('../../lib/XSenseDeviceBase');
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class SmokeDetectorDevice extends XSenseDeviceBase {
   /**
@@ -17,36 +18,8 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       await this.addCapability('measure_signal_strength').catch(this.error);
     }
 
-    // Setup API client (uses base class _initializeCommon())
-    await this._setupAPIClient();
-
-    // Register update callback (uses base class _registerUpdateCallback())
-    this._registerUpdateCallback();
-
-    // Connect MQTT for real-time updates
     try {
-      await this.api.connectMQTT(this.deviceData.houseId, this.deviceData.stationId);
-
-      // Phase 1: Startup Synchronization (Blocking)
-      // fetch latest state from Cloud API/Shadow immediately
-      this.log('Performing startup synchronization...');
-      try {
-        const syncedData = await this.api.syncDevice(this.deviceData.id);
-        if (syncedData) {
-          await this._handleDeviceUpdate(syncedData);
-        } else {
-          await this.updateDevice();
-        }
-      } catch (e) {
-        this.error('Sync failed, falling back to updateDevice', e);
-        await this.updateDevice();
-      }
-
-      // Setup polling
-      this.pollInterval = setInterval(() => {
-        this.updateDevice();
-      }, 60000); // Poll every minute
-
+      await this._startCloudUpdates({ pollIntervalMs: 300000 });
     } catch (error) {
       this.error('Error initializing device:', error);
       this.setUnavailable(this.homey.__('error.initialization_failed'));
@@ -73,11 +46,6 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       }
     }
 
-    // Register Mute Action
-    this.homey.flow.getActionCard('mute_alarm')
-      .registerRunListener(async (args, state) => {
-        return args.device.muteAlarm();
-      });
   }
 
   /**
@@ -92,46 +60,83 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
     try {
       // Parse status if available
       const status = deviceData.status || {};
+      const normalizedEvent = deviceData.normalizedEvent;
+
+      // Older app versions could pair SWS children with the smoke driver.
+      // Preserve safety until the user can re-pair them with the water driver.
+      if (DeviceModelRegistry.entityType(deviceData) === 'water') {
+        if (!this.hasCapability('alarm_water')) await this.addCapability('alarm_water').catch(this.error);
+        if (this.hasCapability('alarm_water')) {
+          let waterAlarm;
+          if (normalizedEvent === 'water_alarm') waterAlarm = true;
+          else if (normalizedEvent === 'alarm_clear') waterAlarm = false;
+          if (waterAlarm !== undefined) {
+            await this.setCapabilityValue('alarm_water', waterAlarm).catch(e => this.error('Water alarm migration update failed:', e));
+          }
+        }
+      }
 
       // Smoke alarm (status.a = alarm state: 0=OK, 1=Alarm)
       // Also check alarmStatus from real-time event messages (which use a flat structure
       // with alarmStatus instead of the shadow's status.a field). Without this check,
       // real smoke alarms received via the @xsense/events topic never trigger alarm_smoke.
       if (this.hasCapability('alarm_smoke')) {
-        const smokeFromShadow = status.a === '1' || status.a === 1;
-        // alarmStatus === 1 from an event means smoke (not CO — CO events also have coPpm > 0)
-        const coPpm = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
-        const smokeFromEvent = deviceData.alarmStatus === 1 && coPpm === 0;
-        const smokeAlarm = smokeFromShadow || smokeFromEvent;
-        await this.setCapabilityValue('alarm_smoke', smokeAlarm).catch(e => this.error('Smoke alarm update failed:', e));
+        let smokeAlarm;
+        if (normalizedEvent === 'smoke_alarm') smokeAlarm = true;
+        else if (normalizedEvent === 'alarm_clear') smokeAlarm = false;
+        else if (normalizedEvent !== 'co_alarm' && normalizedEvent !== 'self_test' && normalizedEvent !== 'mute' && status.a !== undefined) {
+          smokeAlarm = status.a === '1' || status.a === 1;
+        } else if (deviceData.smokeAlarm !== undefined) {
+          smokeAlarm = this._normalizeBool(deviceData.smokeAlarm);
+        }
+
+        if (smokeAlarm !== undefined) {
+          const previous = this.getCapabilityValue('alarm_smoke');
+          await this.setCapabilityValue('alarm_smoke', smokeAlarm).catch(e => this.error('Smoke alarm update failed:', e));
+          if (smokeAlarm && !previous) {
+            await this.homey.flow.getDeviceTriggerCard('smoke_detected')
+              .trigger(this, { device: this.getName() })
+              .catch(e => this.error('Failed to trigger smoke_detected:', e));
+          }
+        }
       }
 
       // CO alarm (if device supports it)
       if (this.hasCapability('alarm_co')) {
-        const coPpm = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
-        // CO alarm from shadow path (status.co) or event path (coPpm > 0 or alarmStatus with CO)
-        const coAlarm = status.co === '1' || status.co === 1 || status.coAlarm === true || coPpm > 0;
-        await this.setCapabilityValue('alarm_co', coAlarm).catch(e => this.error('CO alarm update failed:', e));
+        let coAlarm;
+        if (normalizedEvent === 'co_alarm') coAlarm = true;
+        else if (normalizedEvent === 'alarm_clear') coAlarm = false;
+        else if (status.coAlarm !== undefined) coAlarm = this._normalizeBool(status.coAlarm);
+        else if (deviceData.coAlarm !== undefined) coAlarm = this._normalizeBool(deviceData.coAlarm);
+        if (coAlarm !== undefined) {
+          await this.setCapabilityValue('alarm_co', coAlarm).catch(e => this.error('CO alarm update failed:', e));
+        }
       }
 
       // CO value (measure_co)
       if (this.hasCapability('measure_co')) {
-        const coVal = Number(deviceData.coPpm || deviceData.coLevel || status.coPpm || 0);
-        await this.setCapabilityValue('measure_co', coVal).catch(e => this.error('CO value update failed:', e));
+        const rawCo = this._getFirstValue(deviceData, ['coPpm', 'coLevel', 'coValue', 'co'], status);
+        const coVal = this._normalizeNumber(rawCo);
+        if (coVal !== undefined) {
+          await this.setCapabilityValue('measure_co', coVal).catch(e => this.error('CO value update failed:', e));
+        }
       }
 
       // Smoke status text
       if (this.hasCapability('measure_smoke_status')) {
-        let statusText = 'OK';
-        if (status.a === '1' || status.a === 1) {
+        let statusText = this.getCapabilityValue('measure_smoke_status') || 'OK';
+        if (normalizedEvent === 'alarm_clear') {
+          statusText = 'OK';
+        } else if (normalizedEvent === 'smoke_alarm' || normalizedEvent === 'co_alarm') {
           statusText = 'ALARM';
-        } else if (status.a === '2' || status.a === 2) {
+        } else if (normalizedEvent === 'self_test' || status.a === '2' || status.a === 2) {
           statusText = 'TEST';
-        } else if (status.a === '3' || status.a === 3) {
+        } else if (normalizedEvent === 'mute' || status.a === '3' || status.a === 3) {
           statusText = 'MUTED';
-        } else if (deviceData.alarmStatus === 1) {
-          // Event path: alarmStatus=1 but no shadow status.a yet
+        } else if (status.a === '1' || status.a === 1) {
           statusText = 'ALARM';
+        } else if (status.a === '0' || status.a === 0) {
+          statusText = 'OK';
         }
         await this.setCapabilityValue('measure_smoke_status', statusText).catch(e => this.error('Smoke status update failed:', e));
 
@@ -145,10 +150,19 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       }
 
       // Temperature (some smoke detectors have temperature sensors)
-      if (this.hasCapability('measure_temperature') && status.b !== undefined) {
-        const temp = parseFloat(status.b);
+      const rawTemperature = this._getFirstValue(deviceData, ['temperature', 'temp'], status);
+      if (this.hasCapability('measure_temperature') && rawTemperature !== undefined) {
+        const temp = parseFloat(rawTemperature);
         if (!isNaN(temp)) {
           await this.setCapabilityValue('measure_temperature', temp).catch(e => this.error('Temperature update failed:', e));
+        }
+      }
+
+      const rawHumidity = this._getFirstValue(deviceData, ['humidity', 'humi'], status);
+      if (this.hasCapability('measure_humidity') && rawHumidity !== undefined) {
+        const humidity = parseFloat(rawHumidity);
+        if (!isNaN(humidity)) {
+          await this.setCapabilityValue('measure_humidity', humidity).catch(e => this.error('Humidity update failed:', e));
         }
       }
 
@@ -179,12 +193,13 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
   /**
    * Wait for a positive test acknowledgement from MQTT/event updates.
    */
-  async _waitForTestAck(timeoutMs = 20000) {
+  _waitForTestAck(timeoutMs = 20000) {
     if (!this.api) {
       throw new Error('API client not initialized');
     }
 
-    return new Promise((resolve, reject) => {
+    let cancelWait;
+    const promise = new Promise((resolve, reject) => {
       let settled = false;
       let timeoutHandle = null;
 
@@ -201,6 +216,7 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
           resolve(true);
         }
       };
+      cancelWait = () => finish(new Error('Test acknowledgement wait cancelled'));
 
       const onUpdate = (type, data) => {
         if (type !== 'device' || !data) {
@@ -215,14 +231,13 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
         }
 
         const status = data.status || {};
-        const smokeStatus = this.hasCapability('measure_smoke_status') ? this.getCapabilityValue('measure_smoke_status') : null;
         const isTest =
+          data.normalizedEvent === 'self_test' ||
           status.a === 2 ||
           status.a === '2' ||
           data.alarmStatus === 2 ||
           data.event === 'self_test' ||
-          data.event === 'self_test_triggered' ||
-          smokeStatus === 'TEST';
+          data.event === 'self_test_triggered';
 
         if (isTest) {
           finish();
@@ -235,6 +250,8 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
 
       this.api.onUpdate(onUpdate);
     });
+    promise.cancel = cancelWait;
+    return promise;
   }
 
   /**
@@ -245,14 +262,15 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
       throw new Error('API client not initialized');
     }
 
-    try {
-      // Keep optimistic UI so users get immediate feedback.
-      if (this.hasCapability('measure_smoke_status')) {
-        await this.setCapabilityValue('measure_smoke_status', 'TEST').catch(this.error);
-      }
+    if (!DeviceModelRegistry.supportsRemoteTest(this.deviceData)) {
+      throw new Error(`Remote self-test is not supported by ${DeviceModelRegistry.typeOf(this.deviceData) || 'this model'}`);
+    }
 
+    let acknowledgement;
+    try {
+      acknowledgement = this._waitForTestAck(20000);
       await this.api.testAlarm(this.deviceData.id);
-      await this._waitForTestAck(20000);
+      await acknowledgement;
 
       this.log('Test alarm acknowledged successfully');
 
@@ -275,6 +293,10 @@ class SmokeDetectorDevice extends XSenseDeviceBase {
 
       return true;
     } catch (error) {
+      if (acknowledgement?.cancel) {
+        acknowledgement.cancel();
+        await acknowledgement.catch(() => {});
+      }
       this.error('Failed to trigger test alarm:', error);
       if (this.hasCapability('measure_smoke_status')) {
         this.setCapabilityValue('measure_smoke_status', 'OK').catch(this.error);

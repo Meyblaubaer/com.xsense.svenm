@@ -2,14 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class MailboxAlarmDriver extends Homey.Driver {
   async onInit() {
     this.log('MailboxAlarmDriver has been initialized');
   }
 
-  _matchesMailboxDevice(_device, type) {
-    return type.includes('SMA') || type.includes('MAIL');
+  _matchesMailboxDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'mailbox-alarm';
   }
 
   async onPairListDevices(session) {

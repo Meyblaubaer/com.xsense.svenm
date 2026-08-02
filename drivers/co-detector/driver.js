@@ -2,21 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
-
-const CO_TYPES = ['XC01-M', 'XC04-WX', 'XC0C-IR', 'XC0C-MR', 'XC01-WX', 'XC01WX'];
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class CoDetectorDriver extends Homey.Driver {
   async onInit() {
     this.log('CoDetectorDriver has been initialized');
   }
 
-  _matchesCoDevice(_device, type) {
-    const normalized = String(type || '').replace(/\s+/g, '');
-    if (CO_TYPES.some((candidate) => normalized.includes(candidate.replace(/\s+/g, '')))) {
-      return true;
-    }
-
-    return normalized.startsWith('XC') && !normalized.includes('SC');
+  _matchesCoDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'co-detector';
   }
 
   async onPairListDevices(session) {

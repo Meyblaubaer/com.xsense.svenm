@@ -2,14 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class TemperatureSensorDriver extends Homey.Driver {
   async onInit() {
     this.log('TemperatureSensorDriver has been initialized');
   }
 
-  _matchesTemperatureDevice(_device, type) {
-    return type.includes('STH') || type.includes('TEMP') || type.includes('HYGROMETER');
+  _matchesTemperatureDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'temperature-sensor';
   }
 
   async onPairListDevices(session) {

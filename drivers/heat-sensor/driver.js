@@ -2,14 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class HeatDetectorDriver extends Homey.Driver {
   async onInit() {
     this.log('HeatDetectorDriver has been initialized');
   }
 
-  _matchesHeatDevice(_device, type) {
-    return type.includes('XH') || type.includes('HEAT');
+  _matchesHeatDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'heat-sensor';
   }
 
   async onPairListDevices(session) {

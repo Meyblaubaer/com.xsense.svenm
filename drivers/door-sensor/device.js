@@ -13,6 +13,10 @@ class DoorSensorDevice extends XSenseDeviceBase {
     if (this.hasCapability('alarm_contact') && this.getCapabilityValue('alarm_contact') === null) {
       this.setCapabilityValue('alarm_contact', false).catch(this.error);
     }
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing door sensor:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -26,10 +30,9 @@ class DoorSensorDevice extends XSenseDeviceBase {
     try {
       // Update contact alarm (door/window open/closed)
       if (this.hasCapability('alarm_contact')) {
-        const isOpen = deviceData.isOpen ||
-                       (deviceData.status && deviceData.status.isOpen);
-        const contactOpen = isOpen === true || isOpen === 1 || isOpen === '1' || isOpen === 'true';
-        await this.setCapabilityValue('alarm_contact', contactOpen);
+        const isOpen = this._getFirstValue(deviceData, ['isOpen'], deviceData.status);
+        const contactOpen = this._normalizeBool(isOpen);
+        if (contactOpen !== undefined) await this.setCapabilityValue('alarm_contact', contactOpen);
       }
     } catch (error) {
       this.error('Error handling door-specific device update:', error);

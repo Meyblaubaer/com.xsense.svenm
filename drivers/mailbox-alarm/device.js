@@ -8,6 +8,10 @@ class MailboxAlarmDevice extends XSenseDeviceBase {
     await super.onInit();
 
     this.log('MailboxAlarmDevice has been initialized');
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing mailbox alarm:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**

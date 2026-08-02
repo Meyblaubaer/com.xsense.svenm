@@ -19,6 +19,7 @@ class XSenseApp extends Homey.App {
     // Command guardrails and audit trail
     this.commandCooldowns = new Map();
     this.commandAuditLog = [];
+    this.lastControlPoll = new Map();
 
     // Register flow card actions
     this._registerFlowCards();
@@ -37,6 +38,8 @@ class XSenseApp extends Homey.App {
    * Register flow cards
    */
   _registerFlowCards() {
+    if (this._flowCardsRegistered) return;
+    this._flowCardsRegistered = true;
     // Triggers
     this.homey.flow.getDeviceTriggerCard('co_detected');
     this.homey.flow.getDeviceTriggerCard('device_muted');
@@ -76,6 +79,15 @@ class XSenseApp extends Homey.App {
     stationAlarmCard.registerRunListener(async () => {
       return this._runGlobalFireDrill();
     });
+
+    this.homey.flow.getActionCard('mute_alarm')
+      .registerRunListener(async (args) => {
+        return this._executeDeviceCommand({
+          device: args.device,
+          commandId: 'mute_alarm',
+          execute: async () => args.device.muteAlarm(),
+        });
+      });
   }
 
   async _runGlobalFireDrill() {
@@ -299,7 +311,7 @@ class XSenseApp extends Homey.App {
           if (device.deviceData) {
             device.deviceData.deviceSn = match.deviceSn;
           }
-          this.log(`[Repair] Set deviceSn for ${device.getName()}: ${match.deviceSn}`);
+          this.log('[Repair] Restored a missing temperature sensor identifier');
         }
       }
     }
@@ -377,9 +389,13 @@ class XSenseApp extends Homey.App {
           return isHealthy !== true; // Poll if unhealthy or unknown
         });
 
-        if (needsPolling) {
-          this.log(`Polling updates for client (MQTT unhealthy or unknown)`);
+        const now = Date.now();
+        const lastPoll = this.lastControlPoll.get(key) || 0;
+        const healthyControlPollDue = (now - lastPoll) >= 300000;
+        if (needsPolling || healthyControlPollDue) {
+          this.log(`Polling updates for client (${needsPolling ? 'MQTT unhealthy or unknown' : 'scheduled control poll'})`);
           await client.getAllDevices();
+          this.lastControlPoll.set(key, now);
         } else {
           // Log less frequently (only every 10 minutes)
           if (!this._lastSkipLog || (Date.now() - this._lastSkipLog) > 600000) {
@@ -414,8 +430,13 @@ class XSenseApp extends Homey.App {
     }
 
     // Cleanup all API clients
-    for (const [key, client] of this.apiClients) {
-      client.destroy();
+    for (const clientOrPromise of this.apiClients.values()) {
+      try {
+        const client = await clientOrPromise;
+        if (client && typeof client.destroy === 'function') client.destroy();
+      } catch (error) {
+        this.error('Failed to clean up API client:', error);
+      }
     }
     this.apiClients.clear();
   }
@@ -424,7 +445,7 @@ class XSenseApp extends Homey.App {
    * Note: Base64 is not encryption, but prevents plain-text visibility
    */
   async setStoredCredentials(email, password) {
-    this.log(`Saving credentials for ${email}`);
+    this.log('Saving X-Sense credentials');
     this.homey.settings.set('xsense_email', email);
 
     try {

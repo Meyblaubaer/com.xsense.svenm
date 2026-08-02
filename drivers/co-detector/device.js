@@ -16,9 +16,11 @@ class CoDetectorDevice extends XSenseDeviceBase {
     if (this.hasCapability('alarm_co') && this.getCapabilityValue('alarm_co') === null) {
       this.setCapabilityValue('alarm_co', false).catch(this.error);
     }
-    if (this.hasCapability('measure_co') && this.getCapabilityValue('measure_co') === null) {
-      this.setCapabilityValue('measure_co', 0).catch(this.error);
-    }
+    // Keep unknown CO measurements unset instead of reporting a false 0 ppm.
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing CO detector:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
@@ -32,10 +34,15 @@ class CoDetectorDevice extends XSenseDeviceBase {
     try {
       // Update CO alarm
       if (this.hasCapability('alarm_co')) {
-        const coVal = Number(deviceData.coPpm || deviceData.coLevel || deviceData.coValue || deviceData.co || 0);
-        const coDetected = coVal > 0;
+        const status = deviceData.status || {};
+        let coDetected;
+        if (deviceData.normalizedEvent === 'co_alarm') coDetected = true;
+        else if (deviceData.normalizedEvent === 'alarm_clear') coDetected = false;
+        else if (deviceData.coAlarm !== undefined) coDetected = this._normalizeBool(deviceData.coAlarm);
+        else if (status.coAlarm !== undefined) coDetected = this._normalizeBool(status.coAlarm);
+
         const prevCO = this.getCapabilityValue('alarm_co');
-        await this.setCapabilityValue('alarm_co', coDetected);
+        if (coDetected !== undefined) await this.setCapabilityValue('alarm_co', coDetected);
 
         // Trigger flow if CO was just detected
         if (coDetected && !prevCO) {
@@ -49,8 +56,8 @@ class CoDetectorDevice extends XSenseDeviceBase {
 
       // Update CO level (ppm)
       if (this.hasCapability('measure_co')) {
-        const coLevel = Number(deviceData.coPpm || deviceData.coLevel || deviceData.coValue || deviceData.co || 0);
-        await this.setCapabilityValue('measure_co', coLevel);
+        const coLevel = this._normalizeNumber(this._getFirstValue(deviceData, ['coPpm', 'coLevel', 'coValue', 'co'], deviceData.status));
+        if (coLevel !== undefined) await this.setCapabilityValue('measure_co', coLevel);
       }
     } catch (error) {
       this.error('Error handling CO-specific device update:', error);

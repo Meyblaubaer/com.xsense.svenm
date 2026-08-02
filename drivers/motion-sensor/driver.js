@@ -2,16 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
-
-const MOTION_TYPES = ['SMS0A', 'SMS01', 'XMS01', 'MOTION', 'PIR'];
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class MotionSensorDriver extends Homey.Driver {
   async onInit() {
     this.log('MotionSensorDriver has been initialized');
   }
 
-  _matchesMotionDevice(_device, type) {
-    return MOTION_TYPES.some((candidate) => type.includes(candidate));
+  _matchesMotionDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'motion-sensor';
   }
 
   async onPairListDevices(session) {

@@ -2,20 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class WaterSensorDriver extends Homey.Driver {
   async onInit() {
     this.log('WaterSensorDriver has been initialized');
   }
 
-  _matchesWaterDevice(_device, type) {
-    return (
-      type.includes('SWS') ||
-      type.includes('XWS') ||
-      type.includes('WATER') ||
-      type.includes('LEAK') ||
-      type.includes('FLOOD')
-    );
+  _matchesWaterDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'water-sensor';
   }
 
   async onPairListDevices(session) {

@@ -4,12 +4,13 @@
       "login_failed": "Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Zugangsdaten.",
       "list_failed": "Geräte konnten nicht abgerufen werden. Bitte versuchen Sie es erneut.",
       "not_logged_in": "Bitte zuerst bei X-Sense anmelden.",
-      "no_supported_devices": "Keine unterstützten {{deviceType}} gefunden. Bitte prüfen Sie Modellunterstützung, Freigabe für den Homey-Account und ggf. erforderliche Basisstation."
+      "no_supported_devices": "Keine unterstützten Geräte gefunden. Bitte prüfen Sie Modellunterstützung, Freigabe für den Homey-Account und ggf. erforderliche Basisstation."
     }
   },
   "error": {
     "initialization_failed": "Geräteinitialisierung fehlgeschlagen",
     "device_not_found": "Gerät nicht gefunden",
+    "device_offline": "Gerät ist laut X-Sense offline",
     "update_failed": "Aktualisierung der Gerätedaten fehlgeschlagen",
     "test_alarm_failed": "Alarmtest fehlgeschlagen",
     "another_device_logged_in": "Ein anderes Gerät hat sich bei Ihrem X-Sense-Konto angemeldet. Bitte melden Sie sich aus der X-Sense App auf ALLEN Geräten ab.",

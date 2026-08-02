@@ -2,16 +2,15 @@
 
 const Homey = require('homey');
 const PairingHelper = require('../../lib/PairingHelper');
-
-const DOOR_TYPES = ['SDS0A', 'SES01', 'XDS01', 'DOOR', 'WINDOW', 'CONTACT'];
+const DeviceModelRegistry = require('../../lib/DeviceModelRegistry');
 
 class DoorSensorDriver extends Homey.Driver {
   async onInit() {
     this.log('DoorSensorDriver has been initialized');
   }
 
-  _matchesDoorDevice(_device, type) {
-    return DOOR_TYPES.some((candidate) => type.includes(candidate));
+  _matchesDoorDevice(device, type) {
+    return DeviceModelRegistry.driverId(type || device) === 'door-sensor';
   }
 
   async onPairListDevices(session) {

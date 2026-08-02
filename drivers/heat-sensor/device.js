@@ -16,6 +16,10 @@ class HeatDetectorDevice extends XSenseDeviceBase {
     if (this.hasCapability('alarm_heat') && this.getCapabilityValue('alarm_heat') === null) {
       this.setCapabilityValue('alarm_heat', false).catch(this.error);
     }
+    await this._startCloudUpdates().catch((error) => {
+      this.error('Error initializing heat detector:', error);
+      this.setUnavailable(this.homey.__('error.initialization_failed')).catch(this.error);
+    });
   }
 
   /**
