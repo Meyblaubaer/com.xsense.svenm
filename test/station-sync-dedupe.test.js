@@ -44,3 +44,33 @@ test('shares one station cloud request between concurrent device syncs', async (
 
   api.destroy();
 });
+
+test('shares one station cloud request between concurrent device polls', async () => {
+  const api = new XSenseAPI('test@example.test', 'secret', quietHomey);
+  const station = {
+    stationId: 'station-1',
+    stationSn: 'base-1',
+    category: 'SBS50',
+  };
+  api.stations.set(station.stationId, station);
+  api.devices.set('device-1', { id: 'device-1', stationId: station.stationId });
+
+  let requestCount = 0;
+  let releaseRequest;
+  api._getStationShadowData = async () => {
+    requestCount += 1;
+    await new Promise(resolve => { releaseRequest = resolve; });
+    return {};
+  };
+
+  const first = api.getDevices(station.stationId);
+  const second = api.getDevices(station.stationId);
+  assert.equal(requestCount, 1);
+
+  releaseRequest();
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+  assert.equal(firstResult.length, 1);
+  assert.equal(secondResult.length, 1);
+
+  api.destroy();
+});
