@@ -36,3 +36,33 @@ test('pairs direct devices with a deterministic fallback ID', async () => {
   assert.equal(entries[0].data.deviceType, 'SWS0B');
   assert.ok(entries[0].capabilities.includes('alarm_water'));
 });
+
+test('rejects empty login fields before calling Cognito', async () => {
+  let loginHandler;
+  let apiCalls = 0;
+  const driver = {
+    homey: {
+      __: (key) => key,
+      app: {
+        currentPairSession: null,
+        getStoredCredentials: async () => ({}),
+        getAPIClient: async () => { apiCalls += 1; },
+        setStoredCredentials: async () => {},
+      },
+    },
+    log() {},
+    error() {},
+  };
+  const session = {
+    setHandler(name, handler) {
+      if (name === 'login') loginHandler = handler;
+    },
+  };
+
+  await PairingHelper.registerPairHandlers({ driver, session, listDevicesHandler: async () => [] });
+  await assert.rejects(
+    () => loginHandler({ username: '  ', password: '' }),
+    /pair\.error\.login_failed/
+  );
+  assert.equal(apiCalls, 0);
+});

@@ -12,6 +12,63 @@ Quellenbasis:
 Die Rohberichte werden wegen enthaltener E-Mail-Adressen, Seriennummern,
 SSIDs, IP- und MAC-Adressen nicht in das Repository uebernommen.
 
+## Nachtrag: Diagnoseberichte vom 2026-08-08
+
+Quellen:
+
+- App-Version `1.1.14`, Homey `13.4.0`.
+- Homey Pro (2026), Log-ID `46ea0292-04fc-4039-9d23-ad0c2ace9c63`.
+- Homey Pro (Early 2023), Log-ID `452ce5c2-ec1b-44a2-a0a5-662a813b5612`.
+
+Bestaetigte Ursachen und Umsetzung:
+
+- [x] Die X-Sense-API liefert abgelaufene Sitzungen als HTTP 200 mit
+  `reCode=500` und `NotAuthorizedException`. Dieser Fall wurde bislang nicht
+  als Authentifizierungsfehler erkannt. Cognito-Token werden nun vor Ablauf
+  erneuert; ein abgelehnter Token loest genau einen zentral verriegelten
+  Refresh und Request-Retry aus.
+- [x] AWS-IoT-Zugangsdaten werden beim Signaturwechsel und nach 401/403 neu
+  geladen. Dadurch bleibt MQTT auch nach Ablauf der urspruenglichen
+  Zugangsdaten verbunden.
+- [x] Bei sieben Stationen und 30 Geraeten erreichte die App das feste
+  MQTT-Limit und schnitt Topics mit `Trimming subscriptions: 6 -> 3` ab. Wie
+  die HACS-Integration verwendet Homey nun pro Station ein Wildcard-Topic fuer
+  alle Shadow-Updates sowie ein Presence-Topic.
+- [x] Veraltete `online=0`-Werte koennen bei unterstuetzten Modellen durch ein
+  aktuelles `onlineTime` bestaetigt werden. Schlafende RF-Modelle bleiben von
+  dieser Ableitung ausgeschlossen; SWS0B/XR0A-iR verwenden das verlaengerte
+  49-Stunden-Fenster der HACS-Integration.
+- [x] Mehrere STH51 an derselben Basisstation erzeugten gleichzeitig drei
+  identische Temperatursynchronisierungen. Sie werden nun stationsweise
+  gebuendelt und kurzzeitig dedupliziert.
+- [x] Leere Pairing-Eingaben werden vor Cognito abgefangen. Damit erscheint
+  nicht mehr der technische Fehler `Request does not contain valid parameters`.
+- [x] Signierte MQTT-URLs, Request-MACs und Cognito-Secret-Hashes werden nicht
+  mehr in das Laufzeitprotokoll geschrieben.
+
+Abdeckung:
+
+- Automatische Tests fuer parallele und dauerhaft abgelehnte Sitzungen,
+  proaktiven Token-Refresh, AWS-Shadow-Retry, MQTT-Wildcards, Presence,
+  Online-Zeitfenster, Pairing-Validierung und STH-Buendelung.
+
+## GitHub-Kontrollstand 2026-08-09
+
+- Die vollstaendige GitHub-Liste wurde ueber die oeffentliche API erneut
+  geprueft.
+- Es gibt keine offenen Issues und keine offenen Pull Requests.
+- Seit dem 2026-08-02 wurde kein Issue oder Pull Request neu erstellt oder
+  aktualisiert.
+- Der letzte Pull Request ist
+  [#22 Coordinate periodic station polling](https://github.com/Meyblaubaer/com.xsense.svenm/pull/22),
+  am 2026-08-02 in `main` gemergt.
+- Der vorherige externe Pull Request
+  [#19 Add XS0F-PMA smoke detector](https://github.com/Meyblaubaer/com.xsense.svenm/pull/19)
+  ist geschlossen und wurde durch die vollstaendigere Umsetzung in
+  [#20](https://github.com/Meyblaubaer/com.xsense.svenm/pull/20) ersetzt.
+- Daraus entstehen aktuell keine weiteren Codeaenderungen fuer den
+  Entwicklungsbranch `codex/fix-diagnostics-auth`.
+
 ## P0: Bestaetigte Alarmfehler
 
 ### [ ] Wasserereignis modellabhaengig routen
@@ -219,3 +276,43 @@ Zusaetzlicher Root Cause fuer `alarm_mqtt_connected`:
 5. Flow-Listener zentral und einmalig registrieren.
 6. SD19-MN vollstaendig in die Modellmatrix aufnehmen.
 7. Diagnoseausgabe konsequent redigieren.
+
+## Diagnose vom 11.08.2026 (App 1.1.14)
+
+Quelle:
+
+- Homey-Diagnose `558f2008-eaa0-429c-b3f8-9e20c1c0c618`
+- Homey Pro (Early 2023), Homey `13.4.1-rc.2`
+- Nutzerhinweis: Alle Sensoren aktualisierten sich nach monatelangem Betrieb
+  ploetzlich nicht mehr.
+
+Beobachtung:
+
+- Der Bericht enthaelt weder Stacktrace noch `stderr`-Fehler.
+- Die App findet eine SBS50-Station und alle acht untergeordneten Geraete.
+- Der MQTT-Neuaufbau um 20:05 Uhr wird als erfolgreich bestaetigt; danach
+  werden die Stations-Shadows ebenfalls erfolgreich gelesen.
+- Nach einem App-Neustart um 20:10 Uhr funktionieren Cognito-Anmeldung,
+  AWS-IoT-Zugang, Discovery, Shadow-Abruf und MQTT-Verbindung erneut.
+- Version 1.1.14 stuft MQTT bereits nach erfolgreichem SUBACK als gesund ein
+  und unterdrueckt dann das Fallback-Polling. Der Bericht beweist daher nicht,
+  dass danach tatsaechlich Sensornachrichten empfangen wurden.
+
+Schlussfolgerung:
+
+- Kein neuer, eigenstaendiger Laufzeitfehler ist erkennbar.
+- Das Fehlerbild wird durch die bereits lokal umgesetzten Korrekturen fuer
+  automatische Cognito-/AWS-Credential-Erneuerung, MQTT-Wildcard-Topics und
+  AWS-Retry abgedeckt.
+- Aus diesem einzelnen Bericht laesst sich keine Regression der verwendeten
+  Homey-RC-Version ableiten.
+
+Zusaetzlicher Datenschutzbefund:
+
+- Version 1.1.14 protokolliert noch SECRET_HASH, Request-MAC, vollstaendige
+  API-Antworten mit AWS-Credentials und signierte MQTT-WebSocket-URLs.
+- Der Entwicklungsstand entfernt diese Werte aus den Meldungen und speichert
+  bei API-Aufrufen nur noch redigierte Anfragewerte sowie eine strukturelle
+  Antwortzusammenfassung ohne Nutzdaten.
+- Ein automatisierter Test stellt sicher, dass Credential-Werte nicht in der
+  Antwortzusammenfassung erscheinen.

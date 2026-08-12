@@ -328,7 +328,12 @@ class XSenseApp extends Homey.App {
    * Get or create API client for credentials
    */
   async getAPIClient(email, password) {
-    const key = `${email}:${password}`;
+    const normalizedEmail = typeof email === 'string' ? email.trim() : '';
+    if (!normalizedEmail || typeof password !== 'string' || !password) {
+      throw new Error('X-Sense email and password are required');
+    }
+
+    const key = `${normalizedEmail.toLowerCase()}:${password}`;
     const existing = this.apiClients.get(key);
 
     if (existing) {
@@ -338,7 +343,7 @@ class XSenseApp extends Homey.App {
       return await existing;
     }
 
-    const client = new XSenseAPI(email, password, this.homey);
+    const client = new XSenseAPI(normalizedEmail, password, this.homey);
 
     // Register global error handler for this client
     client.onUpdate((type, data) => {

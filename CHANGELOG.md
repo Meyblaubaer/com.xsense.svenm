@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 1.1.15
+
+- Renew Cognito and AWS IoT credentials automatically and retry failed requests once.
+- Subscribe to all named-shadow updates and device-presence events through MQTT wildcards.
+- Improve online status, pairing validation, and station temperature synchronization.
+- Redact credentials, signed URLs, and private device data from diagnostic logs.
+
 ## Version 1.1.14
 
 - Share periodic cloud updates between devices on the same station.

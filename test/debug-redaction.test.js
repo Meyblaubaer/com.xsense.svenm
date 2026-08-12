@@ -24,3 +24,29 @@ test('redacts identifiers and network data before diagnostics are stored', () =>
     '$aws/things/[REDACTED]/shadow/name/mainpage/update'
   );
 });
+
+test('summarizes API responses without exposing credential values', () => {
+  const XSenseAPI = require('../lib/XSenseAPI');
+  const api = new XSenseAPI('user@example.test', 'secret', {
+    app: { log() {}, error() {}, setMQTTHealth() {} },
+  });
+
+  const summary = api._summarizeAPIResponse({
+    reCode: 200,
+    reMsg: 'success',
+    reData: {
+      accessKeyId: 'AKIA-SECRET',
+      secretAccessKey: 'secret-key',
+      sessionToken: 'session-token',
+    },
+  });
+
+  assert.deepEqual(summary, {
+    reCode: 200,
+    errCode: undefined,
+    reMsg: 'success',
+    reData: 'object(accessKeyId,secretAccessKey,sessionToken)',
+  });
+  assert.equal(JSON.stringify(summary).includes('AKIA-SECRET'), false);
+  api.destroy();
+});
