@@ -10,13 +10,12 @@
   },
   "capabilities": [
     "alarm_contact",
-    "alarm_battery",
     "measure_battery",
     "measure_signal_strength"
   ],
   "energy": {
     "batteries": [
-      "CR2032"
+      "AAA"
     ]
   },
   "platforms": [

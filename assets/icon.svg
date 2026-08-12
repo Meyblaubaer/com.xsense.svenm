@@ -1,4 +1,7 @@
-<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M250 50L450 150V300C450 420 250 480 250 480C250 480 50 420 50 300V150L250 50Z" fill="#FF6B35" stroke="black" stroke-width="20"/>
-  <path d="M150 200L350 300M350 200L150 300" stroke="white" stroke-width="30" stroke-linecap="round"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="960" viewBox="0 0 960 960">
+  <path d="M480,74 L790,205 L790,431 C790,638 668,796 480,886 C292,796 170,638 170,431 L170,205 Z"
+        fill="none" stroke="black" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M258,489 L384,489 L442,357 L524,614 L582,489 L702,489"
+        fill="none" stroke="black" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

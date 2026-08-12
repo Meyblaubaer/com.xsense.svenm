@@ -10,13 +10,13 @@
   },
   "capabilities": [
     "alarm_motion",
-    "alarm_battery",
     "measure_battery",
     "measure_signal_strength"
   ],
   "energy": {
     "batteries": [
-      "CR123A"
+      "AAA",
+      "AAA"
     ]
   },
   "platforms": [

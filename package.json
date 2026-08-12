@@ -1,6 +1,6 @@
 {
   "name": "com.xsense.svenm",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "description": "XSense integration for Homey - IMPORTANT: Use dedicated account via Family Share!",
   "main": "app.js",
   "scripts": {

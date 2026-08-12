@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 1.1.16
+
+- Replace illustrated driver artwork with official X-Sense product photos.
+- Remove borders from the App Store image and use an unfilled vector app icon.
+- Use only the numeric battery capability to prevent duplicate Homey UI components.
+
 ## Version 1.1.15
 
 - Renew Cognito and AWS IoT credentials automatically and retry failed requests once.

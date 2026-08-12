@@ -25,6 +25,14 @@ test('uses model-specific pairing capabilities', () => {
   assert.ok(xs0f.includes('alarm_base_removed'));
 });
 
+test('uses one numeric battery capability without duplicate battery UI', () => {
+  for (const model of ['SWS0A', 'STH0B', 'SDS0A', 'SMS0A', 'SMA11', 'XH02-M', 'XC01-M', 'XS01-M']) {
+    const capabilities = DeviceModelRegistry.capabilities(model);
+    assert.ok(capabilities.includes('measure_battery'), model);
+    assert.equal(capabilities.includes('alarm_battery'), false, model);
+  }
+});
+
 test('blocks remote tests on devices that only report physical tests', () => {
   assert.equal(DeviceModelRegistry.supportsRemoteTest('XS01-WX'), false);
   assert.equal(DeviceModelRegistry.supportsRemoteTest('XS0B-iR'), false);
