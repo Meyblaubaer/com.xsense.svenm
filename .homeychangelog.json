@@ -81,5 +81,8 @@
   },
   "1.1.14": {
     "en": "Fixed device report timestamps and reduced duplicate cloud and device updates. Fallback polling now runs only when MQTT is unhealthy."
+  },
+  "1.1.15": {
+    "en": "Improved long-running reliability with automatic login and AWS IoT credential renewal, broader MQTT update subscriptions, better online status handling, and safer diagnostic logs."
   }
 }
